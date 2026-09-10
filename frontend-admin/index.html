@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickGift Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--slate:#1B2430;--slate-2:#242F3E;--accent:#5B8DEF;--bg:#F3F5F8;--line:#E3E7ED;--ink:#161B22;--gray:#69717D;--green:#189A57;--amber:#B8860B;--red:#C4102F;}
+  *{box-sizing:border-box;margin:0;padding:0;} body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--ink);}
+  a{color:inherit;text-decoration:none;} button{cursor:pointer;font-family:inherit;border:none;}
+  .shell{display:flex;min-height:100vh;}
+  .sidebar{width:220px;background:var(--slate);color:#fff;padding:22px 16px;flex-shrink:0;}
+  .sidebar .logo{font-size:18px;font-weight:700;margin-bottom:30px;}
+  .sidebar a{display:block;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:#AEB8C6;margin-bottom:3px;}
+  .sidebar a.active, .sidebar a:hover{background:var(--slate-2);color:#fff;}
+  .main{flex:1;padding:26px 32px;max-width:1200px;}
+  h1{font-size:22px;margin-bottom:4px;} .sub{color:var(--gray);font-size:13px;margin-bottom:22px;}
+  .stat-row{display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap;}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 20px;flex:1;min-width:140px;}
+  .stat .num{font-size:22px;font-weight:700;color:var(--accent);} .stat .lbl{font-size:11px;color:var(--gray);font-weight:600;text-transform:uppercase;}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px;}
+  th{background:#F7F9FC;text-align:left;padding:10px 14px;font-size:11px;text-transform:uppercase;color:var(--gray);}
+  td{padding:10px 14px;border-top:1px solid var(--line);}
+  .btn{background:var(--accent);color:#fff;font-weight:700;padding:8px 14px;border-radius:7px;font-size:12px;}
+  .btn.danger{background:var(--red);} .btn.ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink);}
+  .pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:9px;text-transform:capitalize;}
+  .pill.approved,.pill.delivered,.pill.captured{background:#E3F7EC;color:var(--green);}
+  .pill.pending,.pill.pending_approval,.pill.under_review,.pill.preparing{background:#FFF6D8;color:var(--amber);}
+  .pill.rejected,.pill.suspended,.pill.cancelled{background:#FDECEF;color:var(--red);}
+  .tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .tabs button{background:#fff;border:1px solid var(--line);padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;}
+  .tabs button.active{background:var(--slate);color:#fff;border-color:var(--slate);}
+  .empty{text-align:center;padding:50px;color:var(--gray);}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal-bg.show{display:flex;} .modal{background:#fff;border-radius:14px;padding:24px;width:400px;max-width:92vw;}
+  .modal input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;margin:5px 0 12px;font-size:13px;}
+  .field-lbl{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;}
+  #apiWarning{display:none;background:#FFF6D8;color:#8a6200;text-align:center;padding:8px;font-size:12.5px;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 20px;border-radius:22px;font-size:13px;z-index:200;display:none;}
+</style>
+</head>
+<body>
+<div id="apiWarning">⚠️ Can't reach the QuickGift API. Start the backend (see README) and reload.</div>
+
+<div class="modal-bg show" id="authModalBg">
+  <div class="modal">
+    <h2 style="margin-bottom:6px;">QuickGift Admin</h2>
+    <p class="sub" style="margin-bottom:16px;">Staff sign-in only.</p>
+    <div class="field-lbl">Email</div><input type="email" id="authEmail">
+    <div class="field-lbl">Password</div><input type="password" id="authPassword">
+    <button class="btn" style="width:100%;" onclick="login()">Sign In</button>
+    <p style="text-align:center;font-size:11.5px;color:var(--gray);margin-top:10px;">Demo login: admin@quickgift.com / Admin@123</p>
+  </div>
+</div>
+
+<div class="shell" id="shell" style="display:none;">
+  <div class="sidebar">
+    <div class="logo">QuickGift <span style="opacity:.6;font-weight:400;">Admin</span></div>
+    <a href="#" onclick="showView('dashboard',this)" class="active">📊 Dashboard</a>
+    <a href="#" onclick="showView('users',this)">👥 Users</a>
+    <a href="#" onclick="showView('sellers',this)">🏪 Sellers</a>
+    <a href="#" onclick="showView('products',this)">🛍 Products</a>
+    <a href="#" onclick="showView('orders',this)">📦 Orders</a>
+    <a href="#" onclick="showView('countries',this)">🌍 Countries</a>
+    <a href="#" onclick="showView('coupons',this)">🏷 Coupons</a>
+    <a href="#" onclick="logout()" style="margin-top:20px;color:#F7B4BD;">Sign Out</a>
+  </div>
+  <div class="main">
+    <div id="view-dashboard"></div>
+    <div id="view-users" style="display:none;"></div>
+    <div id="view-sellers" style="display:none;"></div>
+    <div id="view-products" style="display:none;"></div>
+    <div id="view-orders" style="display:none;"></div>
+    <div id="view-countries" style="display:none;"></div>
+    <div id="view-coupons" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- New coupon modal -->
+<div class="modal-bg" id="couponModalBg">
+  <div class="modal">
+    <h2>New Coupon</h2>
+    <div class="field-lbl">Code</div><input type="text" id="cCode" placeholder="e.g. SUMMER20">
+    <div class="field-lbl">Type</div>
+    <select id="cType" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;margin:5px 0 12px;"><option value="percentage">Percentage</option><option value="fixed">Fixed amount</option></select>
+    <div class="field-lbl">Value</div><input type="number" id="cValue" placeholder="10">
+    <div class="field-lbl">Minimum order value</div><input type="number" id="cMin" value="0">
+    <button class="btn" style="width:100%;" onclick="submitCoupon()">Create Coupon</button>
+    <button onclick="document.getElementById('couponModalBg').classList.remove('show')" style="width:100%;margin-top:8px;background:none;color:var(--gray);">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = window.QUICKGIFT_API_BASE || 'http://localhost:4000/api';
+let state = { token: null, user: null };
+
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2500); }
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers||{}) };
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  try {
+    const res = await fetch(API_BASE + path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    document.getElementById('apiWarning').style.display = 'none';
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  } catch (err) {
+    if (err.message === 'Failed to fetch') document.getElementById('apiWarning').style.display = 'block';
+    throw err;
+  }
+}
+
+const STAFF_ROLES = ['admin','super_admin','ops_manager','support_agent','finance_manager'];
+
+async function login(){
+  try {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    const data = await api('/auth/login', { method:'POST', body:{ email, password } });
+    if (!STAFF_ROLES.includes(data.user.role)) { showToast('This account does not have admin access.'); return; }
+    state.token = data.token; state.user = data.user;
+    document.getElementById('authModalBg').classList.remove('show');
+    document.getElementById('shell').style.display = 'flex';
+    showView('dashboard');
+  } catch (e) { showToast(e.message); }
+}
+function logout(){ state = { token:null, user:null }; document.getElementById('shell').style.display='none'; document.getElementById('authModalBg').classList.add('show'); }
+
+function showView(name, el){
+  ['dashboard','users','sellers','products','orders','countries','coupons'].forEach(v => document.getElementById('view-'+v).style.display = v===name?'block':'none');
+  document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const map = { dashboard: renderDashboard, users: renderUsers, sellers: ()=>renderSellers('pending'), products: renderPendingProducts, orders: renderOrders, countries: renderCountries, coupons: renderCoupons };
+  map[name]();
+}
+
+/* ---------------- DASHBOARD ---------------- */
+async function renderDashboard(){
+  const el = document.getElementById('view-dashboard');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const d = await api('/admin/dashboard');
+    el.innerHTML = `
+      <h1>Platform Overview</h1><p class="sub">Global metrics across all countries and sellers.</p>
+      <div class="stat-row">
+        <div class="stat"><div class="num">${d.total_users}</div><div class="lbl">Customers</div></div>
+        <div class="stat"><div class="num">${d.total_sellers}</div><div class="lbl">Sellers</div></div>
+        <div class="stat"><div class="num">${d.total_products}</div><div class="lbl">Live Products</div></div>
+        <div class="stat"><div class="num">${d.total_orders}</div><div class="lbl">Total Orders</div></div>
+        <div class="stat"><div class="num">₹${d.revenue.toLocaleString()}</div><div class="lbl">Revenue (GMV)</div></div>
+        <div class="stat"><div class="num">₹${d.commission.toLocaleString()}</div><div class="lbl">Commission Earned</div></div>
+        <div class="stat"><div class="num">₹${d.refunds.toLocaleString()}</div><div class="lbl">Refunds Issued</div></div>
+        <div class="stat"><div class="num">${d.international_orders}</div><div class="lbl">International Orders</div></div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:320px;">
+          <h3 style="margin-bottom:10px;">Country-wise Sales</h3>
+          <table><thead><tr><th>Country</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>
+          ${d.country_wise_sales.map(c=>`<tr><td>${c.name}</td><td>${c.order_count}</td><td>₹${parseFloat(c.revenue).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3">No data yet</td></tr>'}
+          </tbody></table>
+        </div>
+        <div style="flex:1;min-width:320px;">
+          <h3 style="margin-bottom:10px;">Top Sellers</h3>
+          <table><thead><tr><th>Seller</th><th>Items Sold</th><th>Revenue</th></tr></thead><tbody>
+          ${d.top_sellers.map(s=>`<tr><td>${s.business_name}</td><td>${s.items_sold}</td><td>₹${parseFloat(s.revenue).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3">No data yet</td></tr>'}
+          </tbody></table>
+        </div>
+      </div>`;
+  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+
+/* ---------------- USERS ---------------- */
+async function renderUsers(){
+  const el = document.getElementById('view-users');
+  el.innerHTML = '<h1>Users</h1><p class="sub">Search, block or unblock customer accounts.</p><input type="text" id="userSearch" placeholder="Search by name, email, phone" style="padding:9px 14px;border:1px solid var(--line);border-radius:8px;width:300px;margin-bottom:14px;" onkeydown="if(event.key===\'Enter\') renderUsers()"><div id="usersTable"><p class="empty">Loading…</p></div>';
+  try {
+    const q = document.getElementById('userSearch')?.value || '';
+    const data = await api('/admin/users' + (q ? `?search=${encodeURIComponent(q)}` : ''));
+    document.getElementById('usersTable').innerHTML = `<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Action</th></tr></thead><tbody>
+      ${data.users.map(u => `<tr>
+        <td>${u.name}</td><td>${u.email||u.phone||'—'}</td><td>${u.role}</td>
+        <td><span class="pill ${u.is_blocked?'suspended':'approved'}">${u.is_blocked?'blocked':'active'}</span></td>
+        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+        <td>${u.is_blocked ? `<button class="btn ghost" onclick="toggleBlock(${u.id},false)">Unblock</button>` : `<button class="btn danger" onclick="toggleBlock(${u.id},true)">Block</button>`}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch (e) { document.getElementById('usersTable').innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+async function toggleBlock(id, block){ try{ await api(`/admin/users/${id}/${block?'block':'unblock'}`,{method:'PATCH'}); showToast('Updated.'); renderUsers(); }catch(e){showToast(e.message);} }
+
+/* ---------------- SELLERS ---------------- */
+async function renderSellers(status){
+  const el = document.getElementById('view-sellers');
+  el.innerHTML = `<h1>Sellers</h1><p class="sub">Review applications and manage active sellers.</p>
+    <div class="tabs">
+      <button class="${status==='pending'?'active':''}" onclick="renderSellers('pending')">Pending</button>
+      <button class="${status==='approved'?'active':''}" onclick="renderSellers('approved')">Approved</button>
+      <button class="${status==='rejected'?'active':''}" onclick="renderSellers('rejected')">Rejected</button>
+      <button class="${status==='suspended'?'active':''}" onclick="renderSellers('suspended')">Suspended</button>
+    </div>
+    <div id="sellersTable"><p class="empty">Loading…</p></div>`;
+  try {
+    const data = await api(`/admin/sellers?status=${status}`);
+    document.getElementById('sellersTable').innerHTML = data.sellers.length ? `<table><thead><tr><th>Business</th><th>Owner</th><th>Products</th><th>Revenue</th><th>Commission</th><th>Actions</th></tr></thead><tbody>
+      ${data.sellers.map(s => `<tr>
+        <td>${s.business_name}</td><td>${s.owner_email}</td><td>${s.product_count}</td><td>₹${parseFloat(s.revenue).toLocaleString()}</td>
+        <td><input type="number" value="${s.commission_rate}" style="width:60px;" onchange="setCommission(${s.id}, this.value)">%</td>
+        <td>
+          ${status==='pending' ? `<button class="btn" onclick="sellerAction(${s.id},'approve')">Approve</button> <button class="btn danger" onclick="sellerAction(${s.id},'reject')">Reject</button>` : ''}
+          ${status==='approved' ? `<button class="btn danger" onclick="sellerAction(${s.id},'suspend')">Suspend</button>` : ''}
+          ${status==='suspended' ? `<button class="btn" onclick="sellerAction(${s.id},'approve')">Reinstate</button>` : ''}
+        </td>
+      </tr>`).join('')}</tbody></table>` : '<p class="empty">No sellers in this state.</p>';
+  } catch (e) { document.getElementById('sellersTable').innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+async function sellerAction(id, action){ try{ await api(`/admin/sellers/${id}/${action}`,{method:'PATCH'}); showToast('Updated.'); renderSellers('pending'); }catch(e){showToast(e.message);} }
+async function setCommission(id, rate){ try{ await api(`/admin/sellers/${id}/commission`,{method:'PATCH',body:{commission_rate:parseFloat(rate)}}); showToast('Commission updated.'); }catch(e){showToast(e.message);} }
+
+/* ---------------- PRODUCTS (approval queue) ---------------- */
+async function renderPendingProducts(){
+  const el = document.getElementById('view-products');
+  el.innerHTML = '<h1>Product Approvals</h1><p class="sub">Products a seller has submitted, awaiting review.</p><div id="prodTable"><p class="empty">Loading…</p></div>';
+  try {
+    const data = await api('/products/admin/pending');
+    document.getElementById('prodTable').innerHTML = data.products.length ? `<table><thead><tr><th>Name</th><th>Seller</th><th>Category</th><th>Price</th><th>Actions</th></tr></thead><tbody>
+      ${data.products.map(p => `<tr>
+        <td>${p.name}</td><td>${p.seller_name}</td><td>${p.category_name}</td><td>₹${p.base_price}</td>
+        <td><button class="btn" onclick="productAction(${p.id},'approve')">Approve</button> <button class="btn danger" onclick="productAction(${p.id},'reject')">Reject</button></td>
+      </tr>`).join('')}</tbody></table>` : '<p class="empty">No products awaiting approval.</p>';
+  } catch (e) { document.getElementById('prodTable').innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+async function productAction(id, action){ try{ await api(`/products/${id}/${action}`,{method:'PATCH'}); showToast('Updated.'); renderPendingProducts(); }catch(e){showToast(e.message);} }
+
+/* ---------------- ORDERS ---------------- */
+async function renderOrders(){
+  const el = document.getElementById('view-orders');
+  el.innerHTML = '<h1>All Orders</h1><p class="sub">Platform-wide order oversight.</p><div id="orderTable"><p class="empty">Loading…</p></div>';
+  try {
+    const data = await api('/admin/orders');
+    document.getElementById('orderTable').innerHTML = data.orders.length ? `<table><thead><tr><th>Order</th><th>Customer</th><th>Country</th><th>Total</th><th>Status</th></tr></thead><tbody>
+      ${data.orders.map(o => `<tr><td>${o.order_number}</td><td>${o.customer_name}</td><td>${o.country_name}</td><td>${o.total_amount}</td><td><span class="pill ${o.status}">${o.status.replace(/_/g,' ')}</span></td></tr>`).join('')}</tbody></table>` : '<p class="empty">No orders yet.</p>';
+  } catch (e) { document.getElementById('orderTable').innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+
+/* ---------------- COUNTRIES ---------------- */
+async function renderCountries(){
+  const el = document.getElementById('view-countries');
+  el.innerHTML = '<h1>Countries</h1><p class="sub">The platform reads this list dynamically — nothing is hardcoded to India.</p><div id="countryTable"><p class="empty">Loading…</p></div>';
+  try {
+    const data = await api('/countries');
+    document.getElementById('countryTable').innerHTML = `<table><thead><tr><th>Country</th><th>Currency</th><th>Tax Rate</th><th>COD</th></tr></thead><tbody>
+      ${data.countries.map(c => `<tr><td>${c.name}</td><td>${c.currency_code}</td><td>${c.tax_rate}%</td><td>${c.supports_cod ? 'Yes':'No'}</td></tr>`).join('')}</tbody></table>`;
+  } catch (e) { document.getElementById('countryTable').innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+
+/* ---------------- COUPONS ---------------- */
+async function renderCoupons(){
+  const el = document.getElementById('view-coupons');
+  el.innerHTML = `<h1>Coupons</h1><p class="sub">Platform-wide discount codes.</p><button class="btn" onclick="document.getElementById('couponModalBg').classList.add('show')">+ New Coupon</button><div id="couponTable" style="margin-top:14px;"><p class="empty">Loading…</p></div>`;
+  try {
+    const data = await api('/coupons');
+    document.getElementById('couponTable').innerHTML = data.coupons.length ? `<table><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Used</th><th>Active</th></tr></thead><tbody>
+      ${data.coupons.map(c => `<tr><td>${c.code}</td><td>${c.type}</td><td>${c.value}</td><td>${c.used_count}${c.usage_limit?'/'+c.usage_limit:''}</td><td>${c.is_active?'Yes':'No'}</td></tr>`).join('')}</tbody></table>` : '<p class="empty">No coupons yet.</p>';
+  } catch (e) { document.getElementById('couponTable').innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+async function submitCoupon(){
+  try {
+    await api('/coupons', { method:'POST', body:{
+      code: document.getElementById('cCode').value,
+      type: document.getElementById('cType').value,
+      value: parseFloat(document.getElementById('cValue').value),
+      min_order_value: parseFloat(document.getElementById('cMin').value) || 0
+    }});
+    document.getElementById('couponModalBg').classList.remove('show');
+    showToast('Coupon created.'); renderCoupons();
+  } catch (e) { showToast(e.message); }
+}
+</script>
+</body>
+</html>

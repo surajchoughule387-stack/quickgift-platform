@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickGift Partner</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--teal:#0E7C7B;--teal-dark:#0A5E5D;--bg:#F4F8F8;--line:#E1EBEA;--ink:#132524;--gray:#68807E;--green:#189A57;--amber:#B8860B;--red:#C4102F;}
+  *{box-sizing:border-box;margin:0;padding:0;} body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--ink);}
+  a{color:inherit;text-decoration:none;} button{cursor:pointer;font-family:inherit;border:none;}
+  .shell{display:flex;min-height:100vh;}
+  .sidebar{width:220px;background:var(--teal-dark);color:#fff;padding:22px 16px;flex-shrink:0;}
+  .sidebar .logo{font-size:19px;font-weight:700;margin-bottom:30px;}
+  .sidebar a{display:block;padding:11px 12px;border-radius:8px;font-size:13.5px;font-weight:600;color:#CFEAE8;margin-bottom:4px;}
+  .sidebar a.active, .sidebar a:hover{background:rgba(255,255,255,0.12);color:#fff;}
+  .main{flex:1;padding:26px 32px;max-width:1100px;}
+  h1{font-size:22px;margin-bottom:4px;} .sub{color:var(--gray);font-size:13px;margin-bottom:22px;}
+  .stat-row{display:flex;gap:16px;margin-bottom:26px;flex-wrap:wrap;}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 22px;flex:1;min-width:150px;}
+  .stat .num{font-size:24px;font-weight:700;color:var(--teal-dark);} .stat .lbl{font-size:11.5px;color:var(--gray);font-weight:600;text-transform:uppercase;}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px;}
+  th{background:#EEF6F5;text-align:left;padding:11px 14px;font-size:11.5px;text-transform:uppercase;color:var(--gray);}
+  td{padding:11px 14px;border-top:1px solid var(--line);}
+  .btn{background:var(--teal);color:#fff;font-weight:700;padding:9px 16px;border-radius:8px;font-size:12.5px;}
+  .btn.outline{background:#fff;border:1.5px solid var(--teal);color:var(--teal);}
+  .btn.danger{background:var(--red);}
+  .pill{font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:10px;text-transform:capitalize;}
+  .pill.approved,.pill.accepted,.pill.delivered{background:#E3F7EC;color:var(--green);}
+  .pill.pending,.pill.pending_approval{background:#FFF6D8;color:var(--amber);}
+  .pill.rejected,.pill.suspended{background:#FDECEF;color:var(--red);}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal-bg.show{display:flex;} .modal{background:#fff;border-radius:14px;padding:24px;width:420px;max-width:92vw;max-height:88vh;overflow:auto;}
+  .modal input, .modal select, .modal textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;margin:5px 0 12px;font-size:13px;}
+  .field-lbl{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;}
+  .empty{text-align:center;padding:50px;color:var(--gray);}
+  #apiWarning{display:none;background:#FFF6D8;color:#8a6200;text-align:center;padding:8px;font-size:12.5px;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 20px;border-radius:22px;font-size:13px;z-index:200;display:none;}
+</style>
+</head>
+<body>
+<div id="apiWarning">⚠️ Can't reach the QuickGift API. Start the backend (see README) and reload.</div>
+
+<div class="modal-bg show" id="authModalBg">
+  <div class="modal">
+    <h2 style="margin-bottom:6px;">QuickGift Partner</h2>
+    <p class="sub" style="margin-bottom:16px;">Sign in with your seller account, or apply to become a seller.</p>
+    <div class="field-lbl">Email</div><input type="email" id="authEmail">
+    <div class="field-lbl">Password</div><input type="password" id="authPassword">
+    <button class="btn" style="width:100%;" onclick="login()">Sign In</button>
+    <p style="text-align:center;font-size:11.5px;color:var(--gray);margin-top:10px;">Demo login: seller1@example.com / Seller@123</p>
+    <hr style="margin:16px 0;border:none;border-top:1px solid var(--line);">
+    <p style="font-size:12.5px;margin-bottom:8px;">New seller? <a href="#" onclick="toggleApplyForm()" style="color:var(--teal);font-weight:700;">Register as a customer first</a>, then apply below.</p>
+    <div id="applyForm" style="display:none;">
+      <div class="field-lbl">Business name</div><input type="text" id="applyBizName">
+      <div class="field-lbl">Business email</div><input type="email" id="applyBizEmail">
+      <button class="btn outline" style="width:100%;" onclick="applyAsSeller()">Submit Seller Application</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell" id="shell" style="display:none;">
+  <div class="sidebar">
+    <div class="logo">QuickGift <span style="opacity:.7;font-weight:400;">Partner</span></div>
+    <a href="#" onclick="showView('dashboard',this)" class="active">📊 Dashboard</a>
+    <a href="#" onclick="showView('orders',this)">📦 Orders</a>
+    <a href="#" onclick="showView('products',this)">🛍 Products</a>
+    <a href="#" onclick="showView('inventory',this)">📥 Inventory</a>
+    <a href="#" onclick="showView('earnings',this)">💰 Earnings</a>
+    <a href="#" onclick="showView('profile',this)">👤 Profile</a>
+    <a href="#" onclick="logout()" style="margin-top:20px;color:#F7B4BD;">Sign Out</a>
+  </div>
+  <div class="main">
+    <div id="view-dashboard"></div>
+    <div id="view-orders" style="display:none;"></div>
+    <div id="view-products" style="display:none;"></div>
+    <div id="view-inventory" style="display:none;"></div>
+    <div id="view-earnings" style="display:none;"></div>
+    <div id="view-profile" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Add product modal -->
+<div class="modal-bg" id="productModalBg">
+  <div class="modal">
+    <h2>Add Product</h2>
+    <div class="field-lbl">Name</div><input type="text" id="pName">
+    <div class="field-lbl">Category</div><select id="pCategory"></select>
+    <div class="field-lbl">Description</div><textarea id="pDescription" rows="3"></textarea>
+    <div class="field-lbl">Base Price (₹)</div><input type="number" id="pPrice">
+    <div class="field-lbl">MRP (₹)</div><input type="number" id="pMrp">
+    <div class="field-lbl">Initial Stock</div><input type="number" id="pStock" value="20">
+    <button class="btn" style="width:100%;" onclick="submitProduct()">Submit for Approval</button>
+    <button onclick="document.getElementById('productModalBg').classList.remove('show')" style="width:100%;margin-top:8px;background:none;color:var(--gray);">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = window.QUICKGIFT_API_BASE || 'http://localhost:4000/api';
+let state = { token: null, user: null, seller: null, categories: [] };
+
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2500); }
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers||{}) };
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  try {
+    const res = await fetch(API_BASE + path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    document.getElementById('apiWarning').style.display = 'none';
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  } catch (err) {
+    if (err.message === 'Failed to fetch') document.getElementById('apiWarning').style.display = 'block';
+    throw err;
+  }
+}
+
+/* ---------------- AUTH ---------------- */
+function toggleApplyForm(){ document.getElementById('applyForm').style.display = document.getElementById('applyForm').style.display === 'block' ? 'none' : 'block'; }
+async function login(){
+  try {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    const data = await api('/auth/login', { method:'POST', body:{ email, password } });
+    if (data.user.role !== 'seller') { showToast('This login is not a seller account.'); return; }
+    state.token = data.token; state.user = data.user;
+    document.getElementById('authModalBg').classList.remove('show');
+    document.getElementById('shell').style.display = 'flex';
+    await loadCategories();
+    showView('dashboard');
+  } catch (e) { showToast(e.message); }
+}
+async function applyAsSeller(){
+  try {
+    // Assumes the visitor already has a customer account and is logged in via token below —
+    // for this demo we ask them to log in first with any account, then apply.
+    if (!state.token) { showToast('Log in with your account first (top form), then submit the application.'); return; }
+    const business_name = document.getElementById('applyBizName').value;
+    const business_email = document.getElementById('applyBizEmail').value;
+    await api('/sellers/register', { method:'POST', body:{ business_name, business_email } });
+    showToast('Application submitted! An admin will review it.');
+  } catch (e) { showToast(e.message); }
+}
+function logout(){ state = { token:null, user:null, seller:null, categories: [] }; document.getElementById('shell').style.display='none'; document.getElementById('authModalBg').classList.add('show'); }
+
+async function loadCategories(){ try { state.categories = (await api('/categories')).categories; } catch(e){} }
+
+/* ---------------- VIEW ROUTING ---------------- */
+function showView(name, el){
+  ['dashboard','orders','products','inventory','earnings','profile'].forEach(v => document.getElementById('view-'+v).style.display = v===name?'block':'none');
+  document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (name==='dashboard') renderDashboard();
+  if (name==='orders') renderOrders();
+  if (name==='products') renderProducts();
+  if (name==='inventory') renderProducts('inventory');
+  if (name==='earnings') renderEarnings();
+  if (name==='profile') renderProfile();
+}
+
+/* ---------------- DASHBOARD ---------------- */
+async function renderDashboard(){
+  const el = document.getElementById('view-dashboard');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const d = await api('/sellers/me/dashboard');
+    state.seller = d.seller;
+    el.innerHTML = `
+      <h1>Welcome back, ${d.seller.business_name}</h1>
+      <p class="sub">Status: <span class="pill ${d.seller.status}">${d.seller.status}</span> ${d.seller.status !== 'approved' ? '— products cannot go live until an admin approves your account.' : ''}</p>
+      <div class="stat-row">
+        <div class="stat"><div class="num">${d.today_orders}</div><div class="lbl">Today's Orders</div></div>
+        <div class="stat"><div class="num">₹${d.total_revenue.toLocaleString()}</div><div class="lbl">Total Revenue</div></div>
+        <div class="stat"><div class="num">${d.pending_orders}</div><div class="lbl">Pending Orders</div></div>
+        <div class="stat"><div class="num">${d.total_products}</div><div class="lbl">Products</div></div>
+        <div class="stat"><div class="num">★ ${d.avg_rating.toFixed(1)}</div><div class="lbl">${d.total_reviews} Reviews</div></div>
+      </div>
+      ${d.low_stock_products.length ? `<h3 style="margin-bottom:10px;">⚠️ Low Stock</h3>
+        <table><thead><tr><th>Product</th><th>Stock</th></tr></thead><tbody>
+        ${d.low_stock_products.map(p=>`<tr><td>${p.name}</td><td>${p.stock}</td></tr>`).join('')}</tbody></table>` : ''}
+    `;
+  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+
+/* ---------------- PRODUCTS ---------------- */
+async function renderProducts(mode){
+  const el = document.getElementById(mode==='inventory' ? 'view-inventory' : 'view-products');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const data = await api('/sellers/me/products');
+    const header = mode==='inventory' ? '<h1>Inventory</h1><p class="sub">Update stock levels per product.</p>' :
+      `<h1>Products</h1><p class="sub">Manage your catalog.</p><button class="btn" onclick="openProductModal()">+ Add Product</button>`;
+    el.innerHTML = header + (data.products.length ? `<table style="margin-top:16px;"><thead><tr><th>Name</th><th>Price</th><th>Stock</th><th>Status</th>${mode==='inventory' ? '<th>Update</th>' : '<th></th>'}</tr></thead><tbody>
+      ${data.products.map(p => `<tr>
+        <td>${p.name}</td><td>₹${p.base_price}</td><td>${p.stock}</td>
+        <td><span class="pill ${p.status}">${p.status.replace('_',' ')}</span></td>
+        <td>${mode==='inventory'
+          ? `<input type="number" value="${p.stock}" style="width:70px;" onchange="updateStock(${p.id}, this.value)">`
+          : `<a href="#" onclick="deleteProduct(${p.id});return false;" style="color:var(--red);">Delete</a>`}</td>
+      </tr>`).join('')}</tbody></table>` : '<p class="empty">No products yet.</p>');
+  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+function openProductModal(){
+  document.getElementById('pCategory').innerHTML = state.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('productModalBg').classList.add('show');
+}
+async function submitProduct(){
+  try {
+    const body = {
+      name: document.getElementById('pName').value,
+      category_id: parseInt(document.getElementById('pCategory').value, 10),
+      description: document.getElementById('pDescription').value,
+      base_price: parseFloat(document.getElementById('pPrice').value),
+      mrp: parseFloat(document.getElementById('pMrp').value) || null
+    };
+    const result = await api('/products', { method:'POST', body });
+    await api(`/sellers/me/products/${result.product.id}/inventory`, { method:'PUT', body:{ quantity: parseInt(document.getElementById('pStock').value,10) || 0 } });
+    document.getElementById('productModalBg').classList.remove('show');
+    showToast('Product submitted for admin approval.');
+    renderProducts();
+  } catch (e) { showToast(e.message); }
+}
+async function deleteProduct(id){ if(!confirm('Delete this product?')) return; try{ await api(`/products/${id}`,{method:'DELETE'}); showToast('Deleted.'); renderProducts(); }catch(e){showToast(e.message);} }
+async function updateStock(id, qty){ try{ await api(`/sellers/me/products/${id}/inventory`,{method:'PUT',body:{quantity:parseInt(qty,10)}}); showToast('Stock updated.'); }catch(e){showToast(e.message);} }
+
+/* ---------------- ORDERS ---------------- */
+async function renderOrders(){
+  const el = document.getElementById('view-orders');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const data = await api('/sellers/me/orders');
+    el.innerHTML = `<h1>Orders</h1><p class="sub">Accept, prepare and pack orders for your products.</p>
+      ${data.order_items.length ? `<table style="margin-top:16px;"><thead><tr><th>Order</th><th>Item</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      ${data.order_items.map(i => `<tr>
+        <td>${i.order_number}</td><td>${i.product_name_snapshot}</td><td>${i.quantity}</td>
+        <td><span class="pill ${i.item_status}">${i.item_status}</span></td>
+        <td>
+          ${i.item_status === 'pending' ? `<button class="btn" onclick="setItemStatus(${i.id},'accepted')">Accept</button> <button class="btn danger" onclick="setItemStatus(${i.id},'rejected')">Reject</button>` : ''}
+          ${i.item_status === 'accepted' ? `<button class="btn" onclick="setItemStatus(${i.id},'preparing')">Start Preparing</button>` : ''}
+          ${i.item_status === 'preparing' ? `<button class="btn" onclick="packItem(${i.id})">Mark Packed</button>` : ''}
+        </td>
+      </tr>`).join('')}</tbody></table>` : '<p class="empty">No orders yet.</p>'}`;
+  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+async function setItemStatus(itemId, status){ try{ await api(`/sellers/me/orders/${itemId}/status`,{method:'PATCH',body:{status}}); showToast('Updated.'); renderOrders(); }catch(e){showToast(e.message);} }
+async function packItem(itemId){
+  const tracking = prompt('Enter a tracking number for this shipment:', 'QGTRK' + Math.floor(Math.random()*900000));
+  try{ await api(`/sellers/me/orders/${itemId}/status`,{method:'PATCH',body:{status:'packed', tracking_number: tracking}}); showToast('Marked packed.'); renderOrders(); }catch(e){showToast(e.message);}
+}
+
+/* ---------------- EARNINGS ---------------- */
+async function renderEarnings(){
+  const el = document.getElementById('view-earnings');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const data = await api('/sellers/me/payouts');
+    el.innerHTML = `<h1>Earnings & Payouts</h1><p class="sub">Commission is deducted automatically per order; payouts are issued by QuickGift admin.</p>
+      ${data.payouts.length ? `<table style="margin-top:16px;"><thead><tr><th>Period</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+      ${data.payouts.map(p=>`<tr><td>${p.period_start||'—'} to ${p.period_end||'—'}</td><td>₹${p.amount}</td><td><span class="pill ${p.status}">${p.status}</span></td></tr>`).join('')}</tbody></table>`
+      : '<p class="empty">No payouts issued yet.</p>'}`;
+  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+
+/* ---------------- PROFILE ---------------- */
+async function renderProfile(){
+  const el = document.getElementById('view-profile');
+  try {
+    const d = await api('/sellers/me');
+    el.innerHTML = `<h1>Business Profile</h1>
+      <table style="margin-top:16px;"><tbody>
+        <tr><td><b>Business Name</b></td><td>${d.seller.business_name}</td></tr>
+        <tr><td><b>Email</b></td><td>${d.seller.business_email||'—'}</td></tr>
+        <tr><td><b>Status</b></td><td><span class="pill ${d.seller.status}">${d.seller.status}</span></td></tr>
+        <tr><td><b>Commission Rate</b></td><td>${d.seller.commission_rate}%</td></tr>
+      </tbody></table>`;
+  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+</script>
+</body>
+</html>

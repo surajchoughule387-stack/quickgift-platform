@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickGift — Global Gifting</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--red:#E4173D;--red-dark:#C4102F;--pink:#FDF1F2;--line:#F0DDE1;--ink:#221019;--gray:#8C7B84;--green:#189A57;--gold:#F6C90E;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Poppins',sans-serif;background:#f7f2f3;color:var(--ink);}
+  h1,h2,h3{font-family:'Playfair Display',serif;}
+  a{color:inherit;text-decoration:none;} button{cursor:pointer;font-family:inherit;border:none;}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 20px;}
+  header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;}
+  .topbar{display:flex;align-items:center;gap:16px;padding:14px 0;}
+  .logo{font-size:22px;font-weight:700;} .logo span{color:var(--red);}
+  .topbar select{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12.5px;background:var(--pink);}
+  .topbar input[type=text]{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 16px;font-size:13.5px;background:var(--pink);}
+  .navlinks{display:flex;gap:18px;align-items:center;font-size:13px;font-weight:600;color:var(--gray);}
+  .navlinks a:hover, .navlinks a.active{color:var(--red);}
+  .cat-strip{display:flex;gap:20px;overflow-x:auto;padding:10px 0;border-top:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--gray);}
+  .cat-strip button.active{color:var(--red);}
+  main{padding:24px 0 60px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+  .card img{width:100%;height:150px;object-fit:cover;background:var(--pink);}
+  .card .body{padding:12px;display:flex;flex-direction:column;gap:6px;flex:1;}
+  .card .name{font-size:13px;font-weight:600;min-height:34px;}
+  .card .price{color:var(--red-dark);font-weight:700;} .card .mrp{color:var(--gray);text-decoration:line-through;font-size:11.5px;margin-left:6px;}
+  .card button{margin-top:auto;background:var(--red);color:#fff;font-size:12px;font-weight:700;padding:9px;border-radius:8px;}
+  .section-title{font-size:22px;margin:24px 0 14px;}
+  .btn{background:var(--red);color:#fff;font-weight:700;padding:11px 20px;border-radius:8px;font-size:13.5px;}
+  .btn.outline{background:#fff;border:1.5px solid var(--red);color:var(--red);}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal-bg.show{display:flex;}
+  .modal{background:#fff;border-radius:14px;padding:26px;width:400px;max-width:92vw;max-height:88vh;overflow:auto;}
+  .modal input, .modal select, .modal textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;margin:6px 0 12px;font-size:13.5px;}
+  .field-lbl{font-size:11.5px;font-weight:700;color:var(--gray);text-transform:uppercase;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 22px;border-radius:24px;font-size:13px;z-index:200;display:none;}
+  .row{display:flex;gap:14px;} .row>*{flex:1;}
+  table{width:100%;border-collapse:collapse;font-size:13px;} td,th{padding:10px;border-bottom:1px solid var(--line);text-align:left;}
+  .status-pill{font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--pink);color:var(--red-dark);text-transform:capitalize;}
+  .empty{text-align:center;padding:60px 20px;color:var(--gray);}
+  #apiWarning{display:none;background:#FFF6D8;color:#8a6200;text-align:center;padding:8px;font-size:12.5px;}
+</style>
+</head>
+<body>
+<div id="apiWarning">⚠️ Can't reach the QuickGift API. Start the backend (see README) and it will connect automatically.</div>
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="logo">Quick<span>Gift</span></div>
+      <input type="text" id="searchInput" placeholder="Search for gifts, flowers, cakes...">
+      <select id="countrySelect"><option>Loading countries...</option></select>
+      <div class="navlinks">
+        <a href="#" onclick="showView('home')" class="active">Home</a>
+        <a href="#" onclick="showView('wishlist')">Wishlist</a>
+        <a href="#" onclick="showView('cart')">Cart (<span id="cartCount">0</span>)</a>
+        <a href="#" onclick="showView('orders')">Orders</a>
+        <a href="#" id="authLink" onclick="openAuthModal()">Sign In</a>
+      </div>
+    </div>
+    <div class="cat-strip" id="catStrip"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- HOME -->
+  <section id="view-home">
+    <h2 class="section-title" id="listTitle">All Gifts</h2>
+    <div class="grid" id="productGrid"><p class="empty">Loading products…</p></div>
+  </section>
+
+  <!-- PRODUCT DETAIL -->
+  <section id="view-product" style="display:none;"></section>
+
+  <!-- CART -->
+  <section id="view-cart" style="display:none;">
+    <h2 class="section-title">Your Cart</h2>
+    <div id="cartBody"></div>
+  </section>
+
+  <!-- CHECKOUT -->
+  <section id="view-checkout" style="display:none;"></section>
+
+  <!-- ORDERS -->
+  <section id="view-orders" style="display:none;">
+    <h2 class="section-title">My Orders</h2>
+    <div id="ordersBody"></div>
+  </section>
+
+  <!-- WISHLIST -->
+  <section id="view-wishlist" style="display:none;">
+    <h2 class="section-title">My Wishlist</h2>
+    <div class="grid" id="wishlistGrid"></div>
+  </section>
+</main>
+
+<!-- AUTH MODAL -->
+<div class="modal-bg" id="authModalBg">
+  <div class="modal">
+    <h3 id="authTitle">Sign In</h3>
+    <div id="authForm">
+      <div class="field-lbl">Email</div><input type="email" id="authEmail">
+      <div class="field-lbl">Password</div><input type="password" id="authPassword">
+      <div id="authNameField" style="display:none;"><div class="field-lbl">Name</div><input type="text" id="authName"></div>
+      <button class="btn" style="width:100%;" onclick="submitAuth()">Continue</button>
+      <p style="text-align:center;margin-top:12px;font-size:12.5px;">
+        <a href="#" onclick="toggleAuthMode()" id="authToggle">New here? Create an account</a>
+      </p>
+      <p style="text-align:center;margin-top:6px;font-size:11.5px;color:var(--gray);">Demo login: customer1@example.com / Customer@123</p>
+    </div>
+    <button onclick="closeAuthModal()" style="margin-top:10px;background:none;color:var(--gray);width:100%;">Close</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = window.QUICKGIFT_API_BASE || 'http://localhost:4000/api';
+let state = { token: null, user: null, countries: [], categories: [], currentCountry: 'IN', currency: 'INR', products: [] };
+
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', 2500); }
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  try {
+    const res = await fetch(API_BASE + path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    document.getElementById('apiWarning').style.display = 'none';
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  } catch (err) {
+    if (err.message === 'Failed to fetch') document.getElementById('apiWarning').style.display = 'block';
+    throw err;
+  }
+}
+
+/* ---------------- AUTH ---------------- */
+let authMode = 'login';
+function openAuthModal(){ document.getElementById('authModalBg').classList.add('show'); }
+function closeAuthModal(){ document.getElementById('authModalBg').classList.remove('show'); }
+function toggleAuthMode(){
+  authMode = authMode === 'login' ? 'register' : 'login';
+  document.getElementById('authTitle').textContent = authMode === 'login' ? 'Sign In' : 'Create Account';
+  document.getElementById('authNameField').style.display = authMode === 'register' ? 'block' : 'none';
+  document.getElementById('authToggle').textContent = authMode === 'login' ? 'New here? Create an account' : 'Already have an account? Sign in';
+}
+async function submitAuth(){
+  const email = document.getElementById('authEmail').value;
+  const password = document.getElementById('authPassword').value;
+  const name = document.getElementById('authName').value;
+  try {
+    const data = authMode === 'login'
+      ? await api('/auth/login', { method: 'POST', body: { email, password } })
+      : await api('/auth/register', { method: 'POST', body: { name, email, password } });
+    state.token = data.token; state.user = data.user;
+    document.getElementById('authLink').textContent = 'Hi, ' + data.user.name.split(' ')[0];
+    closeAuthModal(); showToast('Signed in as ' + data.user.name);
+    refreshCartCount();
+  } catch (err) { showToast(err.message); }
+}
+
+/* ---------------- BOOTSTRAP: countries + categories ---------------- */
+async function loadCountries(){
+  try {
+    const data = await api('/countries');
+    state.countries = data.countries;
+    const sel = document.getElementById('countrySelect');
+    sel.innerHTML = data.countries.map(c => `<option value="${c.iso_code}" data-currency="${c.currency_code}">${c.name} (${c.currency_code})</option>`).join('');
+    sel.onchange = () => {
+      const opt = sel.selectedOptions[0];
+      state.currentCountry = opt.value; state.currency = opt.dataset.currency;
+      loadProducts();
+    };
+  } catch (e) {}
+}
+async function loadCategories(){
+  try {
+    const data = await api('/categories');
+    state.categories = data.categories;
+    document.getElementById('catStrip').innerHTML = ['<button class="active" onclick="filterCategory(null,this)">All</button>']
+      .concat(data.categories.map(c => `<button onclick="filterCategory('${c.slug}',this)">${c.name}</button>`)).join('');
+  } catch (e) {}
+}
+let activeCategory = null;
+function filterCategory(slug, el){
+  activeCategory = slug;
+  document.querySelectorAll('.cat-strip button').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  loadProducts();
+}
+
+/* ---------------- PRODUCTS ---------------- */
+async function loadProducts(q=''){
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = '<p class="empty">Loading products…</p>';
+  try {
+    const params = new URLSearchParams({ currency: state.currency });
+    if (activeCategory) params.set('category', activeCategory);
+    if (q) params.set('q', q);
+    const data = await api('/products?' + params.toString());
+    state.products = data.products;
+    document.getElementById('listTitle').textContent = q ? `Results for "${q}"` : (activeCategory ? state.categories.find(c=>c.slug===activeCategory)?.name : 'All Gifts');
+    if (!data.products.length) { grid.innerHTML = '<p class="empty">No products found. Have you run the seed script?</p>'; return; }
+    grid.innerHTML = data.products.map(productCard).join('');
+  } catch (e) {
+    grid.innerHTML = `<p class="empty">Could not load products.<br>${e.message}</p>`;
+  }
+}
+function currencySymbol(){ const c = state.countries.find(c=>c.currency_code===state.currency); return c ? c.currency_symbol : '₹'; }
+function productCard(p){
+  return `<div class="card">
+    <img src="${p.thumbnail || 'https://picsum.photos/seed/qg'+p.id+'/400/400'}" onclick="openProduct('${p.slug}')" style="cursor:pointer;">
+    <div class="body">
+      <div class="name" onclick="openProduct('${p.slug}')" style="cursor:pointer;">${p.name}</div>
+      <div><span class="price">${currencySymbol()}${p.display_price?.toLocaleString()}</span>${p.display_mrp ? `<span class="mrp">${currencySymbol()}${p.display_mrp?.toLocaleString()}</span>` : ''}</div>
+      <div style="font-size:11px;color:var(--gray);">★ ${p.avg_rating || 'New'} ${p.review_count ? '('+p.review_count+')' : ''} · by ${p.seller_name}</div>
+      <button onclick="quickAddToCart(${p.id})">Add to Cart</button>
+    </div>
+  </div>`;
+}
+document.getElementById('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { showView('home'); loadProducts(e.target.value); } });
+
+async function openProduct(slug){
+  showView('product');
+  const el = document.getElementById('view-product');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const data = await api(`/products/${slug}?currency=${state.currency}`);
+    const p = data.product;
+    el.innerHTML = `
+      <div class="row" style="align-items:flex-start;">
+        <img src="${p.images[0]?.url || 'https://picsum.photos/seed/qg'+p.id+'/500/500'}" style="width:100%;max-width:380px;border-radius:12px;">
+        <div>
+          <p style="color:var(--gray);font-size:12px;">${p.category_name} · sold by ${p.seller_name}</p>
+          <h1 style="margin:8px 0;">${p.name}</h1>
+          <p>★ ${p.avg_rating || 'New'} (${p.review_count} reviews)</p>
+          <h2 style="color:var(--red-dark);margin:14px 0;">${currencySymbol()}${p.base_price.toLocaleString()} ${p.mrp ? `<span class="mrp">${currencySymbol()}${p.mrp.toLocaleString()}</span>`:''}</h2>
+          <p style="font-size:13.5px;color:var(--gray);margin-bottom:14px;">${p.description}</p>
+          <p style="font-size:12.5px;color:${p.in_stock ? 'var(--green)':'var(--red)'};font-weight:600;">${p.in_stock ? `In stock (${p.stock_quantity} available)` : 'Out of stock'}</p>
+          <p style="font-size:12.5px;color:var(--gray);">Delivering to: <b>${state.countries.find(c=>c.iso_code===state.currentCountry)?.name || 'India'}</b> · Prep time ~${p.preparation_time_minutes} min</p>
+          ${p.gift_wrap_available ? '<label style="display:block;margin-top:10px;font-size:13px;"><input type="checkbox" id="pdGiftWrap"> Add gift wrap</label>' : ''}
+          <label style="display:block;margin-top:8px;font-size:13px;">Gift message<textarea id="pdGiftMessage" style="width:100%;margin-top:4px;border:1px solid var(--line);border-radius:8px;padding:8px;" rows="2"></textarea></label>
+          <div style="display:flex;gap:10px;margin-top:16px;">
+            <button class="btn" onclick="addToCart(${p.id}, true)">Add to Cart</button>
+            <button class="btn outline" onclick="addToWishlist(${p.id})">♡ Wishlist</button>
+          </div>
+        </div>
+      </div>`;
+  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+
+/* ---------------- CART ---------------- */
+function requireAuth(){ if (!state.token) { showToast('Please sign in first.'); openAuthModal(); return false; } return true; }
+async function quickAddToCart(productId){ if(!requireAuth()) return; await addToCart(productId, false); }
+async function addToCart(productId, fromDetail){
+  if(!requireAuth()) return;
+  try {
+    const body = { product_id: productId, quantity: 1 };
+    if (fromDetail) {
+      body.gift_wrap = document.getElementById('pdGiftWrap')?.checked || false;
+      body.gift_message = document.getElementById('pdGiftMessage')?.value || null;
+    }
+    await api('/cart/items', { method: 'POST', body });
+    showToast('Added to cart.'); refreshCartCount();
+  } catch (e) { showToast(e.message); }
+}
+async function refreshCartCount(){
+  if (!state.token) return;
+  try { const data = await api('/cart'); document.getElementById('cartCount').textContent = data.items.filter(i=>!i.saved_for_later).reduce((s,i)=>s+i.quantity,0); } catch(e){}
+}
+async function renderCart(){
+  if(!requireAuth()) return;
+  const body = document.getElementById('cartBody');
+  body.innerHTML = 'Loading…';
+  try {
+    const data = await api('/cart');
+    const items = data.items.filter(i=>!i.saved_for_later);
+    if (!items.length) { body.innerHTML = '<p class="empty">Your cart is empty.</p>'; return; }
+    body.innerHTML = `<table><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th></th></tr></thead><tbody>
+      ${items.map(i => `<tr>
+        <td>${i.name}${i.gift_wrap ? ' 🎁' : ''}</td>
+        <td><input type="number" min="1" value="${i.quantity}" style="width:50px;" onchange="updateCartQty(${i.id}, this.value)"></td>
+        <td>${currencySymbol()}${(i.unit_price*i.quantity).toLocaleString()}</td>
+        <td><a href="#" onclick="removeCartItem(${i.id});return false;">Remove</a></td>
+      </tr>`).join('')}
+      </tbody></table>
+      <h3 style="margin-top:16px;">Subtotal: ${currencySymbol()}${data.subtotal.toLocaleString()}</h3>
+      <button class="btn" style="margin-top:14px;" onclick="showView('checkout')">Proceed to Checkout</button>`;
+  } catch (e) { body.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+async function updateCartQty(id, qty){ await api(`/cart/items/${id}`, { method:'PUT', body:{ quantity: parseInt(qty,10) } }); renderCart(); refreshCartCount(); }
+async function removeCartItem(id){ await api(`/cart/items/${id}`, { method:'DELETE' }); renderCart(); refreshCartCount(); }
+
+/* ---------------- WISHLIST ---------------- */
+async function addToWishlist(productId){ if(!requireAuth()) return; try{ await api(`/wishlist/${productId}`, {method:'POST'}); showToast('Added to wishlist.'); }catch(e){showToast(e.message);} }
+async function renderWishlist(){
+  if(!requireAuth()) return;
+  const grid = document.getElementById('wishlistGrid');
+  try {
+    const data = await api('/wishlist');
+    grid.innerHTML = data.items.length ? data.items.map(i => `<div class="card">
+      <img src="${i.thumbnail || 'https://picsum.photos/seed/qg'+i.id+'/400/400'}">
+      <div class="body"><div class="name">${i.name}</div><div class="price">${currencySymbol()}${i.base_price}</div>
+      <button onclick="moveWishToCart(${i.id})">Move to Cart</button></div></div>`).join('') : '<p class="empty">Your wishlist is empty.</p>';
+  } catch (e) { grid.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+async function moveWishToCart(productId){ await api(`/wishlist/${productId}/move-to-cart`, {method:'POST'}); showToast('Moved to cart.'); refreshCartCount(); }
+
+/* ---------------- CHECKOUT ---------------- */
+let razorpayScriptLoaded = false;
+function loadRazorpayScript(){
+  return new Promise((resolve) => {
+    if (razorpayScriptLoaded) return resolve();
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => { razorpayScriptLoaded = true; resolve(); };
+    document.head.appendChild(script);
+  });
+}
+async function renderCheckout(){
+  if(!requireAuth()) return;
+  const el = document.getElementById('view-checkout');
+  el.innerHTML = '<p class="empty">Loading addresses…</p>';
+  let addresses = [];
+  try { addresses = (await api('/addresses')).addresses; } catch (e) {}
+
+  el.innerHTML = `
+    <h2 class="section-title">Checkout</h2>
+    <div id="savedAddresses">
+      ${addresses.length ? `<div class="field-lbl">Choose a saved address</div>
+        <select id="coSavedAddress" onchange="toggleNewAddressForm(this.value)">
+          ${addresses.map(a => `<option value="${a.id}">${a.label} — ${a.line1}, ${a.city} (${a.country_name || ''})</option>`).join('')}
+          <option value="__new__">+ Add a new address</option>
+        </select>` : '<p style="font-size:12.5px;color:var(--gray);">No saved addresses yet — add one below.</p>'}
+    </div>
+    <div id="newAddressForm" style="${addresses.length ? 'display:none;' : ''}margin-top:10px;">
+      <div class="field-lbl">Label</div><input type="text" id="coLabel" placeholder="Home" value="Home">
+      <div class="field-lbl">Address line</div><input type="text" id="coLine1" placeholder="House no, street, area">
+      <div class="row"><div><div class="field-lbl">City</div><input type="text" id="coCity"></div><div><div class="field-lbl">Postal code</div><input type="text" id="coPostal"></div></div>
+      <div class="field-lbl">Country</div>
+      <select id="coCountry">${state.countries.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+    </div>
+    <div class="field-lbl">Coupon code (optional)</div><input type="text" id="coCoupon" placeholder="e.g. WELCOME10">
+    <div class="field-lbl">Payment method</div>
+    <select id="coPayment"><option value="card">Card</option><option value="upi">UPI</option><option value="cod">Cash on Delivery</option></select>
+    <button class="btn" style="margin-top:14px;" onclick="placeOrder()">Place Order</button>
+    <p id="checkoutResult" style="margin-top:16px;font-size:13px;"></p>`;
+}
+function toggleNewAddressForm(value){
+  document.getElementById('newAddressForm').style.display = value === '__new__' ? 'block' : 'none';
+}
+async function resolveDeliveryAddressId(){
+  const savedSelect = document.getElementById('coSavedAddress');
+  if (savedSelect && savedSelect.value !== '__new__') return parseInt(savedSelect.value, 10);
+
+  const line1 = document.getElementById('coLine1').value;
+  const city = document.getElementById('coCity').value;
+  const postal_code = document.getElementById('coPostal').value;
+  const country_id = document.getElementById('coCountry').value;
+  const label = document.getElementById('coLabel').value || 'Home';
+  if (!line1 || !city || !postal_code) throw new Error('Please fill in the full address.');
+
+  const created = await api('/addresses', { method: 'POST', body: { label, line1, city, postal_code, country_id, is_default: true } });
+  return created.address.id;
+}
+async function placeOrder(){
+  const resultEl = document.getElementById('checkoutResult');
+  try {
+    resultEl.textContent = 'Submitting order...';
+    const deliveryAddressId = await resolveDeliveryAddressId();
+
+    const data = await api('/orders/checkout', {
+      method: 'POST',
+      body: {
+        delivery_address_id: deliveryAddressId,
+        coupon_code: document.getElementById('coCoupon').value || undefined,
+        payment_method: document.getElementById('coPayment').value
+      }
+    });
+    resultEl.innerHTML = `Order <b>${data.order.order_number}</b> created — total ${currencySymbol()}${data.order.total_amount}.`;
+
+    if (data.payment_intent.provider === 'razorpay') {
+      // REAL payment path: open Razorpay's hosted checkout widget. Razorpay
+      // itself calls our server's /api/payments/webhook once the bank/card
+      // network confirms — the browser never gets to declare success on its own.
+      await loadRazorpayScript();
+      const rzp = new Razorpay({
+        key: data.payment_intent.razorpayKeyId,
+        amount: Math.round(data.order.total_amount * 100),
+        currency: data.order.currency_code,
+        order_id: data.payment_intent.providerPaymentId,
+        name: 'QuickGift',
+        description: `Order ${data.order.order_number}`,
+        handler: function () {
+          resultEl.innerHTML += ' Payment submitted — waiting for confirmation…';
+          showToast('Payment submitted. Your order will update once confirmed.');
+          setTimeout(()=>showView('orders'), 1500);
+        },
+        theme: { color: '#E4173D' }
+      });
+      rzp.open();
+    } else {
+      // DEV-ONLY (mock provider): simulate the payment gateway's webhook callback
+      // so the full order flow is testable with zero payment credentials.
+      // REMOVE this block before going live with a real provider — in production
+      // the webhook is called server-to-server by the gateway, never the browser.
+      resultEl.innerHTML += ' Confirming payment (mock provider)…';
+      await fetch(API_BASE + '/payments/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-webhook-signature': 'dev' },
+        body: JSON.stringify({ providerPaymentId: data.payment_intent.providerPaymentId, status: 'captured' })
+      });
+      resultEl.innerHTML += ' Payment confirmed!';
+      showToast('Order placed successfully.');
+      refreshCartCount();
+      setTimeout(()=>showView('orders'), 1200);
+    }
+  } catch (e) { resultEl.textContent = e.message; }
+}
+
+/* ---------------- ORDERS ---------------- */
+async function renderOrders(){
+  if(!requireAuth()) return;
+  const body = document.getElementById('ordersBody');
+  try {
+    const data = await api('/orders');
+    body.innerHTML = data.orders.length ? `<table><thead><tr><th>Order</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
+      ${data.orders.map(o => `<tr>
+        <td>${o.order_number}</td><td>${new Date(o.placed_at).toLocaleDateString()}</td>
+        <td>${o.total_amount}</td><td><span class="status-pill">${o.status.replace(/_/g,' ')}</span></td>
+        <td><a href="#" onclick="viewTracking(${o.id});return false;">Track</a></td>
+      </tr>`).join('')}</tbody></table>` : '<p class="empty">No orders yet.</p>';
+  } catch (e) { body.innerHTML = `<p class="empty">${e.message}</p>`; }
+}
+async function viewTracking(orderId){
+  try {
+    const data = await api(`/orders/${orderId}/tracking`);
+    alert(`Status: ${data.order_status}\n` + data.events.map(e=>`${e.status} — ${e.location||''} (${new Date(e.event_time).toLocaleString()})`).join('\n'));
+  } catch (e) { showToast(e.message); }
+}
+
+/* ---------------- VIEW ROUTING ---------------- */
+function showView(name){
+  ['home','product','cart','checkout','orders','wishlist'].forEach(v => document.getElementById('view-'+v).style.display = v===name ? 'block' : 'none');
+  document.querySelectorAll('.navlinks a').forEach(a=>a.classList.remove('active'));
+  if (name === 'cart') renderCart();
+  if (name === 'checkout') renderCheckout();
+  if (name === 'orders') renderOrders();
+  if (name === 'wishlist') renderWishlist();
+}
+
+/* ---------------- INIT ---------------- */
+loadCountries();
+loadCategories();
+loadProducts();
+</script>
+</body>
+</html>
