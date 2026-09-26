@@ -120,7 +120,6 @@ async function api(path, opts = {}) {
 }
 
 /* ---------------- AUTH ---------------- */
-function toggleApplyForm(){ document.getElementById('applyForm').style.display = document.getElementById('applyForm').style.display === 'block' ? 'none' : 'block'; }
 async function login(){
   try {
     const email = document.getElementById('authEmail').value;
