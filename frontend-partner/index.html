@@ -165,13 +165,7 @@ async function api(path, opts = {}) {
     showToast(e.message);
   }
 }
-    state.token = data.token; state.user = data.user;
-    document.getElementById('authModalBg').classList.remove('show');
-    document.getElementById('shell').style.display = 'flex';
-    await loadCategories();
-    showView('dashboard');
-  } catch (e) { showToast(e.message); }
-}
+
 async function applyAsSeller(){
   try {
     // Assumes the visitor already has a customer account and is logged in via token below —
