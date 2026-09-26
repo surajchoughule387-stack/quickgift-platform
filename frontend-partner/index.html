@@ -126,7 +126,52 @@ async function login(){
     const email = document.getElementById('authEmail').value;
     const password = document.getElementById('authPassword').value;
     const data = await api('/auth/login', { method:'POST', body:{ email, password } });
-    if (data.user.role !== 'seller') { showToast('This login is not a seller account.'); return; }
+
+    async function login(){
+  try {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+
+    if (!email || !password) {
+      showToast('Please enter email and password.');
+      return;
+    }
+
+    const data = await api('/auth/login', {
+      method: 'POST',
+      body: {
+        email: email,
+        password: password
+      }
+    });
+
+    state.token = data.token;
+    state.user = data.user;
+
+    // Seller account → Partner Dashboard
+    if (data.user.role === 'seller') {
+      document.getElementById('authModalBg').classList.remove('show');
+      document.getElementById('shell').style.display = 'flex';
+
+      await loadCategories();
+      showView('dashboard');
+      return;
+    }
+
+    // Customer account → Seller Application
+    if (data.user.role === 'customer') {
+      document.getElementById('applyForm').style.display = 'block';
+
+      showToast('Login successful. Now submit your seller application.');
+      return;
+    }
+
+    showToast('This account cannot access QuickGift Partner.');
+
+  } catch (e) {
+    showToast(e.message);
+  }
+}
     state.token = data.token; state.user = data.user;
     document.getElementById('authModalBg').classList.remove('show');
     document.getElementById('shell').style.display = 'flex';
