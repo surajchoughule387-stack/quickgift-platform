@@ -165,18 +165,58 @@ async function api(path, opts = {}) {
     showToast(e.message);
   }
 }
-
 async function applyAsSeller(){
   try {
-    // Assumes the visitor already has a customer account and is logged in via token below —
-    // for this demo we ask them to log in first with any account, then apply.
-    if (!state.token) { showToast('Log in with your account first (top form), then submit the application.'); return; }
-    const business_name = document.getElementById('applyBizName').value;
-    const business_email = document.getElementById('applyBizEmail').value;
-    await api('/sellers/register', { method:'POST', body:{ business_name, business_email } });
-    showToast('Application submitted! An admin will review it.');
-  } catch (e) { showToast(e.message); }
+    if (!state.token) {
+      showToast('Please sign in with your customer account first.');
+      return;
+    }
+
+    if (!state.user || state.user.role !== 'customer') {
+      showToast('Please use a customer account to apply as seller.');
+      return;
+    }
+
+    const business_name =
+      document.getElementById('applyBizName').value.trim();
+
+    const business_email =
+      document.getElementById('applyBizEmail').value.trim();
+
+    if (!business_name || !business_email) {
+      showToast('Please enter business name and business email.');
+      return;
+    }
+
+    await api('/sellers/register', {
+      method: 'POST',
+      body: {
+        business_name: business_name,
+        business_email: business_email
+      }
+    });
+
+    document.getElementById('applyForm').innerHTML = `
+      <div style="
+        padding:14px;
+        background:#E3F7EC;
+        border-radius:8px;
+        color:#146c43;
+        font-size:13px;
+        line-height:1.5;
+      ">
+        ✅ Seller application submitted successfully.<br>
+        Your application is now pending admin approval.
+      </div>
+    `;
+
+    showToast('Seller application submitted.');
+
+  } catch (e) {
+    showToast(e.message);
+  }
 }
+
 function logout(){ state = { token:null, user:null, seller:null, categories: [] }; document.getElementById('shell').style.display='none'; document.getElementById('authModalBg').classList.add('show'); }
 
 async function loadCategories(){ try { state.categories = (await api('/categories')).categories; } catch(e){} }
