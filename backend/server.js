@@ -26,7 +26,14 @@ const supportRoutes = require('./src/routes/support.routes');
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+const allowedOrigins = (process.env.CORS_ORIGIN || '*')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins
+}));
 
 // Rate limiting — protects auth and checkout endpoints from abuse.
 const generalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
