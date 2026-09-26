@@ -1,356 +1,2720 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>QuickGift Partner</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+>
+
 <style>
-  :root{--teal:#0E7C7B;--teal-dark:#0A5E5D;--bg:#F4F8F8;--line:#E1EBEA;--ink:#132524;--gray:#68807E;--green:#189A57;--amber:#B8860B;--red:#C4102F;}
-  *{box-sizing:border-box;margin:0;padding:0;} body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--ink);}
-  a{color:inherit;text-decoration:none;} button{cursor:pointer;font-family:inherit;border:none;}
-  .shell{display:flex;min-height:100vh;}
-  .sidebar{width:220px;background:var(--teal-dark);color:#fff;padding:22px 16px;flex-shrink:0;}
-  .sidebar .logo{font-size:19px;font-weight:700;margin-bottom:30px;}
-  .sidebar a{display:block;padding:11px 12px;border-radius:8px;font-size:13.5px;font-weight:600;color:#CFEAE8;margin-bottom:4px;}
-  .sidebar a.active, .sidebar a:hover{background:rgba(255,255,255,0.12);color:#fff;}
-  .main{flex:1;padding:26px 32px;max-width:1100px;}
-  h1{font-size:22px;margin-bottom:4px;} .sub{color:var(--gray);font-size:13px;margin-bottom:22px;}
-  .stat-row{display:flex;gap:16px;margin-bottom:26px;flex-wrap:wrap;}
-  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 22px;flex:1;min-width:150px;}
-  .stat .num{font-size:24px;font-weight:700;color:var(--teal-dark);} .stat .lbl{font-size:11.5px;color:var(--gray);font-weight:600;text-transform:uppercase;}
-  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px;}
-  th{background:#EEF6F5;text-align:left;padding:11px 14px;font-size:11.5px;text-transform:uppercase;color:var(--gray);}
-  td{padding:11px 14px;border-top:1px solid var(--line);}
-  .btn{background:var(--teal);color:#fff;font-weight:700;padding:9px 16px;border-radius:8px;font-size:12.5px;}
-  .btn.outline{background:#fff;border:1.5px solid var(--teal);color:var(--teal);}
-  .btn.danger{background:var(--red);}
-  .pill{font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:10px;text-transform:capitalize;}
-  .pill.approved,.pill.accepted,.pill.delivered{background:#E3F7EC;color:var(--green);}
-  .pill.pending,.pill.pending_approval{background:#FFF6D8;color:var(--amber);}
-  .pill.rejected,.pill.suspended{background:#FDECEF;color:var(--red);}
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100;}
-  .modal-bg.show{display:flex;} .modal{background:#fff;border-radius:14px;padding:24px;width:420px;max-width:92vw;max-height:88vh;overflow:auto;}
-  .modal input, .modal select, .modal textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;margin:5px 0 12px;font-size:13px;}
-  .field-lbl{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;}
-  .empty{text-align:center;padding:50px;color:var(--gray);}
-  #apiWarning{display:none;background:#FFF6D8;color:#8a6200;text-align:center;padding:8px;font-size:12.5px;}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 20px;border-radius:22px;font-size:13px;z-index:200;display:none;}
+  :root{
+    --teal:#0E7C7B;
+    --teal-dark:#0A5E5D;
+    --bg:#F4F8F8;
+    --line:#E1EBEA;
+    --ink:#132524;
+    --gray:#68807E;
+    --green:#189A57;
+    --amber:#B8860B;
+    --red:#C4102F;
+  }
+
+  *{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+  }
+
+  body{
+    font-family:'Poppins',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+
+  a{
+    color:inherit;
+    text-decoration:none;
+  }
+
+  button{
+    cursor:pointer;
+    font-family:inherit;
+    border:none;
+  }
+
+  .shell{
+    display:flex;
+    min-height:100vh;
+  }
+
+  .sidebar{
+    width:220px;
+    background:var(--teal-dark);
+    color:#fff;
+    padding:22px 16px;
+    flex-shrink:0;
+  }
+
+  .sidebar .logo{
+    font-size:19px;
+    font-weight:700;
+    margin-bottom:30px;
+  }
+
+  .sidebar a{
+    display:block;
+    padding:11px 12px;
+    border-radius:8px;
+    font-size:13.5px;
+    font-weight:600;
+    color:#CFEAE8;
+    margin-bottom:4px;
+  }
+
+  .sidebar a.active,
+  .sidebar a:hover{
+    background:rgba(255,255,255,0.12);
+    color:#fff;
+  }
+
+  .main{
+    flex:1;
+    padding:26px 32px;
+    max-width:1100px;
+  }
+
+  h1{
+    font-size:22px;
+    margin-bottom:4px;
+  }
+
+  .sub{
+    color:var(--gray);
+    font-size:13px;
+    margin-bottom:22px;
+  }
+
+  .stat-row{
+    display:flex;
+    gap:16px;
+    margin-bottom:26px;
+    flex-wrap:wrap;
+  }
+
+  .stat{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 22px;
+    flex:1;
+    min-width:150px;
+  }
+
+  .stat .num{
+    font-size:24px;
+    font-weight:700;
+    color:var(--teal-dark);
+  }
+
+  .stat .lbl{
+    font-size:11.5px;
+    color:var(--gray);
+    font-weight:600;
+    text-transform:uppercase;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    font-size:13px;
+  }
+
+  th{
+    background:#EEF6F5;
+    text-align:left;
+    padding:11px 14px;
+    font-size:11.5px;
+    text-transform:uppercase;
+    color:var(--gray);
+  }
+
+  td{
+    padding:11px 14px;
+    border-top:1px solid var(--line);
+  }
+
+  .btn{
+    background:var(--teal);
+    color:#fff;
+    font-weight:700;
+    padding:9px 16px;
+    border-radius:8px;
+    font-size:12.5px;
+  }
+
+  .btn:hover{
+    background:var(--teal-dark);
+  }
+
+  .btn.outline{
+    background:#fff;
+    border:1.5px solid var(--teal);
+    color:var(--teal);
+  }
+
+  .btn.outline:hover{
+    background:#EEF6F5;
+  }
+
+  .btn.danger{
+    background:var(--red);
+  }
+
+  .pill{
+    font-size:10.5px;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:10px;
+    text-transform:capitalize;
+  }
+
+  .pill.approved,
+  .pill.accepted,
+  .pill.delivered{
+    background:#E3F7EC;
+    color:var(--green);
+  }
+
+  .pill.pending,
+  .pill.pending_approval,
+  .pill.preparing,
+  .pill.packed{
+    background:#FFF6D8;
+    color:var(--amber);
+  }
+
+  .pill.rejected,
+  .pill.suspended{
+    background:#FDECEF;
+    color:var(--red);
+  }
+
+  .modal-bg{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.4);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+  }
+
+  .modal-bg.show{
+    display:flex;
+  }
+
+  .modal{
+    background:#fff;
+    border-radius:14px;
+    padding:24px;
+    width:420px;
+    max-width:92vw;
+    max-height:88vh;
+    overflow:auto;
+  }
+
+  .modal input,
+  .modal select,
+  .modal textarea{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px;
+    margin:5px 0 12px;
+    font-size:13px;
+    font-family:inherit;
+  }
+
+  .modal input:focus,
+  .modal select:focus,
+  .modal textarea:focus{
+    outline:none;
+    border-color:var(--teal);
+  }
+
+  .field-lbl{
+    font-size:11px;
+    font-weight:700;
+    color:var(--gray);
+    text-transform:uppercase;
+  }
+
+  .empty{
+    text-align:center;
+    padding:50px;
+    color:var(--gray);
+  }
+
+  #apiWarning{
+    display:none;
+    background:#FFF6D8;
+    color:#8a6200;
+    text-align:center;
+    padding:8px;
+    font-size:12.5px;
+  }
+
+  .toast{
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--ink);
+    color:#fff;
+    padding:11px 20px;
+    border-radius:22px;
+    font-size:13px;
+    z-index:200;
+    display:none;
+    max-width:90%;
+    text-align:center;
+  }
+
+  .success-box{
+    padding:14px;
+    background:#E3F7EC;
+    border-radius:8px;
+    color:#146c43;
+    line-height:1.5;
+    font-size:13px;
+  }
+
+  .warning-box{
+    padding:14px;
+    background:#FFF6D8;
+    border-radius:8px;
+    color:#8a6200;
+    line-height:1.5;
+    font-size:13px;
+  }
+
+  @media(max-width:700px){
+
+    .shell{
+      flex-direction:column;
+    }
+
+    .sidebar{
+      width:100%;
+      padding:12px;
+    }
+
+    .sidebar .logo{
+      margin-bottom:10px;
+    }
+
+    .sidebar a{
+      display:inline-block;
+      margin-right:4px;
+      margin-bottom:4px;
+      padding:8px 9px;
+      font-size:11px;
+    }
+
+    .main{
+      padding:18px 14px;
+    }
+
+    table{
+      display:block;
+      overflow-x:auto;
+      white-space:nowrap;
+    }
+
+    .stat{
+      min-width:130px;
+    }
+
+    .modal{
+      width:95vw;
+      padding:20px;
+    }
+  }
 </style>
 </head>
+
 <body>
-<div id="apiWarning">⚠️ Can't reach the QuickGift API. Start the backend (see README) and reload.</div>
 
+<!-- API WARNING -->
+<div id="apiWarning">
+  ⚠️ Can't reach the QuickGift API. Please check the backend connection and reload.
+</div>
+
+
+<!-- AUTH MODAL -->
 <div class="modal-bg show" id="authModalBg">
+
   <div class="modal">
-    <h2 style="margin-bottom:6px;">QuickGift Partner</h2>
-    <p class="sub" style="margin-bottom:16px;">Sign in with your seller account, or apply to become a seller.</p>
-    <div class="field-lbl">Email</div><input type="email" id="authEmail">
-    <div class="field-lbl">Password</div><input type="password" id="authPassword">
-    <button class="btn" style="width:100%;" onclick="login()">Sign In</button>
-    <p style="text-align:center;font-size:11.5px;color:var(--gray);margin-top:10px;">Demo login: seller1@example.com / Seller@123</p>
-    <hr style="margin:16px 0;border:none;border-top:1px solid var(--line);">
-    <p style="font-size:12.5px;margin-bottom:8px;">New seller? <a href="#" onclick="toggleApplyForm()" style="color:var(--teal);font-weight:700;">Register as a customer first</a>, then apply below.</p>
-    <div id="applyForm" style="display:none;">
-      <div class="field-lbl">Business name</div><input type="text" id="applyBizName">
-      <div class="field-lbl">Business email</div><input type="email" id="applyBizEmail">
-      <button class="btn outline" style="width:100%;" onclick="applyAsSeller()">Submit Seller Application</button>
+
+    <h2 style="margin-bottom:6px;">
+      QuickGift Partner
+    </h2>
+
+    <p class="sub" style="margin-bottom:16px;">
+      Sign in with your seller account, or apply to become a seller.
+    </p>
+
+
+    <!-- LOGIN -->
+
+    <div class="field-lbl">
+      Email
     </div>
+
+    <input
+      type="email"
+      id="authEmail"
+      placeholder="Enter your email"
+      autocomplete="email"
+    >
+
+
+    <div class="field-lbl">
+      Password
+    </div>
+
+    <input
+      type="password"
+      id="authPassword"
+      placeholder="Enter your password"
+      autocomplete="current-password"
+    >
+
+
+    <button
+      class="btn"
+      style="width:100%;"
+      onclick="login()"
+    >
+      Sign In
+    </button>
+
+
+    <hr
+      style="
+        margin:16px 0;
+        border:none;
+        border-top:1px solid var(--line);
+      "
+    >
+
+
+    <!-- SELLER APPLICATION -->
+
+    <p
+      style="
+        font-size:12.5px;
+        margin-bottom:8px;
+      "
+    >
+      New seller?
+
+      <a
+        href="#"
+        onclick="toggleApplyForm(); return false;"
+        style="
+          color:var(--teal);
+          font-weight:700;
+        "
+      >
+        Register as a customer first
+      </a>
+      , then apply below.
+    </p>
+
+
+    <div
+      id="applyForm"
+      style="display:none;"
+    >
+
+      <div class="field-lbl">
+        Business name
+      </div>
+
+      <input
+        type="text"
+        id="applyBizName"
+        placeholder="Your business/store name"
+      >
+
+
+      <div class="field-lbl">
+        Business email
+      </div>
+
+      <input
+        type="email"
+        id="applyBizEmail"
+        placeholder="Business email"
+      >
+
+
+      <button
+        class="btn outline"
+        style="width:100%;"
+        onclick="applyAsSeller()"
+      >
+        Submit Seller Application
+      </button>
+
+    </div>
+
   </div>
+
 </div>
 
-<div class="shell" id="shell" style="display:none;">
+
+<!-- MAIN PARTNER APP -->
+
+<div
+  class="shell"
+  id="shell"
+  style="display:none;"
+>
+
+  <!-- SIDEBAR -->
+
   <div class="sidebar">
-    <div class="logo">QuickGift <span style="opacity:.7;font-weight:400;">Partner</span></div>
-    <a href="#" onclick="showView('dashboard',this)" class="active">📊 Dashboard</a>
-    <a href="#" onclick="showView('orders',this)">📦 Orders</a>
-    <a href="#" onclick="showView('products',this)">🛍 Products</a>
-    <a href="#" onclick="showView('inventory',this)">📥 Inventory</a>
-    <a href="#" onclick="showView('earnings',this)">💰 Earnings</a>
-    <a href="#" onclick="showView('profile',this)">👤 Profile</a>
-    <a href="#" onclick="logout()" style="margin-top:20px;color:#F7B4BD;">Sign Out</a>
+
+    <div class="logo">
+      QuickGift
+      <span style="opacity:.7;font-weight:400;">
+        Partner
+      </span>
+    </div>
+
+
+    <a
+      href="#"
+      onclick="showView('dashboard',this);return false;"
+      class="active"
+    >
+      📊 Dashboard
+    </a>
+
+    <a
+      href="#"
+      onclick="showView('orders',this);return false;"
+    >
+      📦 Orders
+    </a>
+
+    <a
+      href="#"
+      onclick="showView('products',this);return false;"
+    >
+      🛍 Products
+    </a>
+
+    <a
+      href="#"
+      onclick="showView('inventory',this);return false;"
+    >
+      📥 Inventory
+    </a>
+
+    <a
+      href="#"
+      onclick="showView('earnings',this);return false;"
+    >
+      💰 Earnings
+    </a>
+
+    <a
+      href="#"
+      onclick="showView('profile',this);return false;"
+    >
+      👤 Profile
+    </a>
+
+    <a
+      href="#"
+      onclick="logout();return false;"
+      style="
+        margin-top:20px;
+        color:#F7B4BD;
+      "
+    >
+      Sign Out
+    </a>
+
   </div>
+
+
+  <!-- MAIN CONTENT -->
+
   <div class="main">
+
     <div id="view-dashboard"></div>
-    <div id="view-orders" style="display:none;"></div>
-    <div id="view-products" style="display:none;"></div>
-    <div id="view-inventory" style="display:none;"></div>
-    <div id="view-earnings" style="display:none;"></div>
-    <div id="view-profile" style="display:none;"></div>
+
+    <div
+      id="view-orders"
+      style="display:none;"
+    ></div>
+
+    <div
+      id="view-products"
+      style="display:none;"
+    ></div>
+
+    <div
+      id="view-inventory"
+      style="display:none;"
+    ></div>
+
+    <div
+      id="view-earnings"
+      style="display:none;"
+    ></div>
+
+    <div
+      id="view-profile"
+      style="display:none;"
+    ></div>
+
   </div>
+
 </div>
 
-<!-- Add product modal -->
-<div class="modal-bg" id="productModalBg">
+
+<!-- ADD PRODUCT MODAL -->
+
+<div
+  class="modal-bg"
+  id="productModalBg"
+>
+
   <div class="modal">
-    <h2>Add Product</h2>
-    <div class="field-lbl">Name</div><input type="text" id="pName">
-    <div class="field-lbl">Category</div><select id="pCategory"></select>
-    <div class="field-lbl">Description</div><textarea id="pDescription" rows="3"></textarea>
-    <div class="field-lbl">Base Price (₹)</div><input type="number" id="pPrice">
-    <div class="field-lbl">MRP (₹)</div><input type="number" id="pMrp">
-    <div class="field-lbl">Initial Stock</div><input type="number" id="pStock" value="20">
-    <button class="btn" style="width:100%;" onclick="submitProduct()">Submit for Approval</button>
-    <button onclick="document.getElementById('productModalBg').classList.remove('show')" style="width:100%;margin-top:8px;background:none;color:var(--gray);">Cancel</button>
+
+    <h2>
+      Add Product
+    </h2>
+
+
+    <div class="field-lbl">
+      Name
+    </div>
+
+    <input
+      type="text"
+      id="pName"
+      placeholder="Product name"
+    >
+
+
+    <div class="field-lbl">
+      Category
+    </div>
+
+    <select id="pCategory">
+      <option value="">
+        Select category
+      </option>
+    </select>
+
+
+    <div class="field-lbl">
+      Description
+    </div>
+
+    <textarea
+      id="pDescription"
+      rows="3"
+      placeholder="Product description"
+    ></textarea>
+
+
+    <div class="field-lbl">
+      Base Price (₹)
+    </div>
+
+    <input
+      type="number"
+      id="pPrice"
+      min="0"
+      step="0.01"
+      placeholder="0"
+    >
+
+
+    <div class="field-lbl">
+      MRP (₹)
+    </div>
+
+    <input
+      type="number"
+      id="pMrp"
+      min="0"
+      step="0.01"
+      placeholder="0"
+    >
+
+
+    <div class="field-lbl">
+      Initial Stock
+    </div>
+
+    <input
+      type="number"
+      id="pStock"
+      min="0"
+      value="20"
+    >
+
+
+    <button
+      class="btn"
+      style="width:100%;"
+      onclick="submitProduct()"
+    >
+      Submit for Approval
+    </button>
+
+
+    <button
+      onclick="
+        document
+          .getElementById('productModalBg')
+          .classList.remove('show')
+      "
+      style="
+        width:100%;
+        margin-top:8px;
+        background:none;
+        color:var(--gray);
+        padding:8px;
+      "
+    >
+      Cancel
+    </button>
+
   </div>
+
 </div>
 
-<div class="toast" id="toast"></div>
-  <script>
-window.QUICKGIFT_API_BASE = "https://quickgift-backend.onrender.com/api";
-</script>
+
+<div
+  class="toast"
+  id="toast"
+></div>
+
+
+<!-- QUICKGIFT API -->
+
 <script>
-const API_BASE = window.QUICKGIFT_API_BASE || 'http://localhost:4000/api';
-let state = { token: null, user: null, seller: null, categories: [] };
+window.QUICKGIFT_API_BASE =
+  "https://quickgift-backend.onrender.com/api";
+</script>
 
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2500); }
 
-async function api(path, opts = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(opts.headers||{}) };
-  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
-  try {
-    const res = await fetch(API_BASE + path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
-    document.getElementById('apiWarning').style.display = 'none';
-    const data = await res.json().catch(()=>({}));
-    if (!res.ok) throw new Error(data.error || 'Request failed');
+<script>
+
+/* =========================================================
+   GLOBAL STATE
+========================================================= */
+
+const API_BASE =
+  window.QUICKGIFT_API_BASE ||
+  'http://localhost:4000/api';
+
+
+let state = {
+  token: null,
+  user: null,
+  seller: null,
+  categories: []
+};
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+function showToast(message){
+
+  const toast =
+    document.getElementById('toast');
+
+  toast.textContent = message;
+  toast.style.display = 'block';
+
+  clearTimeout(window.quickGiftToastTimer);
+
+  window.quickGiftToastTimer =
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 3000);
+}
+
+
+/* =========================================================
+   API HELPER
+========================================================= */
+
+async function api(path, opts = {}){
+
+  const headers = {
+    'Content-Type':'application/json',
+    ...(opts.headers || {})
+  };
+
+
+  if(state.token){
+
+    headers['Authorization'] =
+      'Bearer ' + state.token;
+
+  }
+
+
+  try{
+
+    const response =
+      await fetch(
+        API_BASE + path,
+        {
+          ...opts,
+          headers,
+          body:
+            opts.body
+              ? JSON.stringify(opts.body)
+              : undefined
+        }
+      );
+
+
+    document
+      .getElementById('apiWarning')
+      .style.display = 'none';
+
+
+    const data =
+      await response
+        .json()
+        .catch(() => ({}));
+
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error ||
+        data.message ||
+        'Request failed'
+      );
+
+    }
+
+
     return data;
-  } catch (err) {
-    if (err.message === 'Failed to fetch') document.getElementById('apiWarning').style.display = 'block';
-    throw err;
+
+  }catch(error){
+
+    if(
+      error.message === 'Failed to fetch' ||
+      error.name === 'TypeError'
+    ){
+
+      document
+        .getElementById('apiWarning')
+        .style.display = 'block';
+
+    }
+
+    throw error;
   }
 }
 
 
-    async function login(){
-  try {
-    const email = document.getElementById('authEmail').value.trim();
-    const password = document.getElementById('authPassword').value;
+/* =========================================================
+   AUTH - TOGGLE SELLER APPLICATION
+========================================================= */
 
-    if (!email || !password) {
-      showToast('Please enter email and password.');
+function toggleApplyForm(){
+
+  const form =
+    document.getElementById('applyForm');
+
+  if(form.style.display === 'block'){
+
+    form.style.display = 'none';
+
+  }else{
+
+    form.style.display = 'block';
+
+  }
+}
+
+
+/* =========================================================
+   AUTH - LOGIN
+========================================================= */
+
+async function login(){
+
+  try{
+
+    const email =
+      document
+        .getElementById('authEmail')
+        .value
+        .trim();
+
+    const password =
+      document
+        .getElementById('authPassword')
+        .value;
+
+
+    if(!email || !password){
+
+      showToast(
+        'Please enter email and password.'
+      );
+
       return;
     }
 
-    const data = await api('/auth/login', {
-      method: 'POST',
-      body: {
-        email: email,
-        password: password
-      }
-    });
 
-    state.token = data.token;
-    state.user = data.user;
+    const data =
+      await api(
+        '/auth/login',
+        {
+          method:'POST',
 
-    // Seller account → Partner Dashboard
-    if (data.user.role === 'seller') {
-      document.getElementById('authModalBg').classList.remove('show');
-      document.getElementById('shell').style.display = 'flex';
+          body:{
+            email:email,
+            password:password
+          }
+        }
+      );
+
+
+    state.token =
+      data.token;
+
+    state.user =
+      data.user;
+
+
+    /* -----------------------------------------
+       SELLER ACCOUNT
+    ----------------------------------------- */
+
+    if(data.user.role === 'seller'){
+
+      document
+        .getElementById('authModalBg')
+        .classList.remove('show');
+
+
+      document
+        .getElementById('shell')
+        .style.display = 'flex';
+
 
       await loadCategories();
+
       showView('dashboard');
+
       return;
     }
 
-    // Customer account → Seller Application
-    if (data.user.role === 'customer') {
-      document.getElementById('applyForm').style.display = 'block';
 
-      showToast('Login successful. Now submit your seller application.');
+    /* -----------------------------------------
+       CUSTOMER ACCOUNT
+    ----------------------------------------- */
+
+    if(data.user.role === 'customer'){
+
+      document
+        .getElementById('applyForm')
+        .style.display = 'block';
+
+
+      showToast(
+        'Customer login successful. Now submit your seller application.'
+      );
+
       return;
     }
 
-    showToast('This account cannot access QuickGift Partner.');
 
-  } catch (e) {
-    showToast(e.message);
+    /* -----------------------------------------
+       OTHER ROLE
+    ----------------------------------------- */
+
+    showToast(
+      'This account cannot access QuickGift Partner.'
+    );
+
+
+  }catch(error){
+
+    showToast(
+      error.message ||
+      'Login failed.'
+    );
+
   }
 }
+
+
+/* =========================================================
+   SELLER APPLICATION
+========================================================= */
+
 async function applyAsSeller(){
-  try {
-    if (!state.token) {
-      showToast('Please sign in with your customer account first.');
+
+  try{
+
+    /* -----------------------------------------
+       CHECK LOGIN
+    ----------------------------------------- */
+
+    if(!state.token){
+
+      showToast(
+        'Please sign in with your customer account first.'
+      );
+
       return;
     }
 
-    if (!state.user || state.user.role !== 'customer') {
-      showToast('Please use a customer account to apply as seller.');
+
+    /* -----------------------------------------
+       CHECK CUSTOMER ROLE
+    ----------------------------------------- */
+
+    if(
+      !state.user ||
+      state.user.role !== 'customer'
+    ){
+
+      showToast(
+        'Please use a customer account to apply as seller.'
+      );
+
       return;
     }
 
-    const business_name =
-      document.getElementById('applyBizName').value.trim();
 
-    const business_email =
-      document.getElementById('applyBizEmail').value.trim();
+    /* -----------------------------------------
+       GET FORM DATA
+    ----------------------------------------- */
 
-    if (!business_name || !business_email) {
-      showToast('Please enter business name and business email.');
+    const businessName =
+      document
+        .getElementById('applyBizName')
+        .value
+        .trim();
+
+
+    const businessEmail =
+      document
+        .getElementById('applyBizEmail')
+        .value
+        .trim();
+
+
+    /* -----------------------------------------
+       VALIDATION
+    ----------------------------------------- */
+
+    if(!businessName){
+
+      showToast(
+        'Please enter your business name.'
+      );
+
       return;
     }
 
-    await api('/sellers/register', {
-      method: 'POST',
-      body: {
-        business_name: business_name,
-        business_email: business_email
+
+    if(!businessEmail){
+
+      showToast(
+        'Please enter your business email.'
+      );
+
+      return;
+    }
+
+
+    if(!businessEmail.includes('@')){
+
+      showToast(
+        'Please enter a valid business email.'
+      );
+
+      return;
+    }
+
+
+    /* -----------------------------------------
+       REGISTER SELLER
+    ----------------------------------------- */
+
+    await api(
+      '/sellers/register',
+      {
+        method:'POST',
+
+        body:{
+          business_name:businessName,
+          business_email:businessEmail
+        }
       }
+    );
+
+
+    /* -----------------------------------------
+       SUCCESS UI
+    ----------------------------------------- */
+
+    document
+      .getElementById('applyForm')
+      .innerHTML = `
+
+        <div class="success-box">
+
+          ✅ <strong>Seller application submitted!</strong>
+
+          <br><br>
+
+          Your application is now
+          <strong>pending admin approval</strong>.
+
+          <br>
+
+          After approval, you can sign in
+          and access the QuickGift Partner dashboard.
+
+        </div>
+
+      `;
+
+
+    showToast(
+      'Seller application submitted successfully.'
+    );
+
+
+  }catch(error){
+
+    showToast(
+      error.message ||
+      'Seller application failed.'
+    );
+
+  }
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+function logout(){
+
+  state = {
+    token:null,
+    user:null,
+    seller:null,
+    categories:[]
+  };
+
+
+  document
+    .getElementById('shell')
+    .style.display = 'none';
+
+
+  document
+    .getElementById('authModalBg')
+    .classList.add('show');
+
+
+  document
+    .getElementById('authEmail')
+    .value = '';
+
+
+  document
+    .getElementById('authPassword')
+    .value = '';
+
+
+  document
+    .getElementById('applyForm')
+    .style.display = 'none';
+}
+
+
+/* =========================================================
+   LOAD CATEGORIES
+========================================================= */
+
+async function loadCategories(){
+
+  try{
+
+    const data =
+      await api('/categories');
+
+    state.categories =
+      data.categories || [];
+
+  }catch(error){
+
+    state.categories = [];
+
+  }
+}
+
+
+/* =========================================================
+   VIEW ROUTING
+========================================================= */
+
+function showView(name, element){
+
+  const views = [
+    'dashboard',
+    'orders',
+    'products',
+    'inventory',
+    'earnings',
+    'profile'
+  ];
+
+
+  views.forEach(view => {
+
+    const section =
+      document.getElementById(
+        'view-' + view
+      );
+
+    if(section){
+
+      section.style.display =
+        view === name
+          ? 'block'
+          : 'none';
+
+    }
+
+  });
+
+
+  document
+    .querySelectorAll('.sidebar a')
+    .forEach(link => {
+
+      link.classList.remove('active');
+
     });
 
-    document.getElementById('applyForm').innerHTML = `
-      <div style="
-        padding:14px;
-        background:#E3F7EC;
-        border-radius:8px;
-        color:#146c43;
-        font-size:13px;
-        line-height:1.5;
-      ">
-        ✅ Seller application submitted successfully.<br>
-        Your application is now pending admin approval.
-      </div>
-    `;
 
-    showToast('Seller application submitted.');
+  if(element){
 
-  } catch (e) {
-    showToast(e.message);
+    element.classList.add('active');
+
+  }
+
+
+  if(name === 'dashboard'){
+    renderDashboard();
+  }
+
+  if(name === 'orders'){
+    renderOrders();
+  }
+
+  if(name === 'products'){
+    renderProducts();
+  }
+
+  if(name === 'inventory'){
+    renderProducts('inventory');
+  }
+
+  if(name === 'earnings'){
+    renderEarnings();
+  }
+
+  if(name === 'profile'){
+    renderProfile();
   }
 }
 
-function logout(){ state = { token:null, user:null, seller:null, categories: [] }; document.getElementById('shell').style.display='none'; document.getElementById('authModalBg').classList.add('show'); }
 
-async function loadCategories(){ try { state.categories = (await api('/categories')).categories; } catch(e){} }
+/* =========================================================
+   DASHBOARD
+========================================================= */
 
-/* ---------------- VIEW ROUTING ---------------- */
-function showView(name, el){
-  ['dashboard','orders','products','inventory','earnings','profile'].forEach(v => document.getElementById('view-'+v).style.display = v===name?'block':'none');
-  document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));
-  if (el) el.classList.add('active');
-  if (name==='dashboard') renderDashboard();
-  if (name==='orders') renderOrders();
-  if (name==='products') renderProducts();
-  if (name==='inventory') renderProducts('inventory');
-  if (name==='earnings') renderEarnings();
-  if (name==='profile') renderProfile();
-}
-
-/* ---------------- DASHBOARD ---------------- */
 async function renderDashboard(){
-  const el = document.getElementById('view-dashboard');
-  el.innerHTML = '<p class="empty">Loading…</p>';
-  try {
-    const d = await api('/sellers/me/dashboard');
-    state.seller = d.seller;
-    el.innerHTML = `
-      <h1>Welcome back, ${d.seller.business_name}</h1>
-      <p class="sub">Status: <span class="pill ${d.seller.status}">${d.seller.status}</span> ${d.seller.status !== 'approved' ? '— products cannot go live until an admin approves your account.' : ''}</p>
+
+  const element =
+    document.getElementById(
+      'view-dashboard'
+    );
+
+
+  element.innerHTML =
+    '<p class="empty">Loading…</p>';
+
+
+  try{
+
+    const data =
+      await api(
+        '/sellers/me/dashboard'
+      );
+
+
+    state.seller =
+      data.seller;
+
+
+    const todayOrders =
+      Number(data.today_orders || 0);
+
+
+    const totalRevenue =
+      Number(data.total_revenue || 0);
+
+
+    const pendingOrders =
+      Number(data.pending_orders || 0);
+
+
+    const totalProducts =
+      Number(data.total_products || 0);
+
+
+    const averageRating =
+      Number(data.avg_rating || 0);
+
+
+    const totalReviews =
+      Number(data.total_reviews || 0);
+
+
+    const lowStockProducts =
+      data.low_stock_products || [];
+
+
+    element.innerHTML = `
+
+      <h1>
+        Welcome back,
+        ${escapeHtml(data.seller.business_name)}
+      </h1>
+
+      <p class="sub">
+
+        Status:
+
+        <span class="pill ${data.seller.status}">
+          ${escapeHtml(data.seller.status)}
+        </span>
+
+        ${
+          data.seller.status !== 'approved'
+            ? ' — products cannot go live until an admin approves your account.'
+            : ''
+        }
+
+      </p>
+
+
       <div class="stat-row">
-        <div class="stat"><div class="num">${d.today_orders}</div><div class="lbl">Today's Orders</div></div>
-        <div class="stat"><div class="num">₹${d.total_revenue.toLocaleString()}</div><div class="lbl">Total Revenue</div></div>
-        <div class="stat"><div class="num">${d.pending_orders}</div><div class="lbl">Pending Orders</div></div>
-        <div class="stat"><div class="num">${d.total_products}</div><div class="lbl">Products</div></div>
-        <div class="stat"><div class="num">★ ${d.avg_rating.toFixed(1)}</div><div class="lbl">${d.total_reviews} Reviews</div></div>
+
+        <div class="stat">
+
+          <div class="num">
+            ${todayOrders}
+          </div>
+
+          <div class="lbl">
+            Today's Orders
+          </div>
+
+        </div>
+
+
+        <div class="stat">
+
+          <div class="num">
+            ₹${totalRevenue.toLocaleString('en-IN')}
+          </div>
+
+          <div class="lbl">
+            Total Revenue
+          </div>
+
+        </div>
+
+
+        <div class="stat">
+
+          <div class="num">
+            ${pendingOrders}
+          </div>
+
+          <div class="lbl">
+            Pending Orders
+          </div>
+
+        </div>
+
+
+        <div class="stat">
+
+          <div class="num">
+            ${totalProducts}
+          </div>
+
+          <div class="lbl">
+            Products
+          </div>
+
+        </div>
+
+
+        <div class="stat">
+
+          <div class="num">
+            ★ ${averageRating.toFixed(1)}
+          </div>
+
+          <div class="lbl">
+            ${totalReviews} Reviews
+          </div>
+
+        </div>
+
       </div>
-      ${d.low_stock_products.length ? `<h3 style="margin-bottom:10px;">⚠️ Low Stock</h3>
-        <table><thead><tr><th>Product</th><th>Stock</th></tr></thead><tbody>
-        ${d.low_stock_products.map(p=>`<tr><td>${p.name}</td><td>${p.stock}</td></tr>`).join('')}</tbody></table>` : ''}
+
+
+      ${
+        lowStockProducts.length
+
+        ?
+
+        `
+          <h3 style="margin-bottom:10px;">
+            ⚠️ Low Stock
+          </h3>
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>Product</th>
+                <th>Stock</th>
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              ${
+                lowStockProducts
+                  .map(product => `
+
+                    <tr>
+
+                      <td>
+                        ${escapeHtml(product.name)}
+                      </td>
+
+                      <td>
+                        ${Number(product.stock || 0)}
+                      </td>
+
+                    </tr>
+
+                  `)
+                  .join('')
+              }
+
+            </tbody>
+
+          </table>
+        `
+
+        :
+
+        ''
+      }
+
     `;
-  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+
+  }catch(error){
+
+    element.innerHTML = `
+
+      <p class="empty">
+        ${escapeHtml(error.message)}
+      </p>
+
+    `;
+
+  }
 }
 
-/* ---------------- PRODUCTS ---------------- */
+
+/* =========================================================
+   PRODUCTS
+========================================================= */
+
 async function renderProducts(mode){
-  const el = document.getElementById(mode==='inventory' ? 'view-inventory' : 'view-products');
-  el.innerHTML = '<p class="empty">Loading…</p>';
-  try {
-    const data = await api('/sellers/me/products');
-    const header = mode==='inventory' ? '<h1>Inventory</h1><p class="sub">Update stock levels per product.</p>' :
-      `<h1>Products</h1><p class="sub">Manage your catalog.</p><button class="btn" onclick="openProductModal()">+ Add Product</button>`;
-    el.innerHTML = header + (data.products.length ? `<table style="margin-top:16px;"><thead><tr><th>Name</th><th>Price</th><th>Stock</th><th>Status</th>${mode==='inventory' ? '<th>Update</th>' : '<th></th>'}</tr></thead><tbody>
-      ${data.products.map(p => `<tr>
-        <td>${p.name}</td><td>₹${p.base_price}</td><td>${p.stock}</td>
-        <td><span class="pill ${p.status}">${p.status.replace('_',' ')}</span></td>
-        <td>${mode==='inventory'
-          ? `<input type="number" value="${p.stock}" style="width:70px;" onchange="updateStock(${p.id}, this.value)">`
-          : `<a href="#" onclick="deleteProduct(${p.id});return false;" style="color:var(--red);">Delete</a>`}</td>
-      </tr>`).join('')}</tbody></table>` : '<p class="empty">No products yet.</p>');
-  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+
+  const element =
+    document.getElementById(
+      mode === 'inventory'
+        ? 'view-inventory'
+        : 'view-products'
+    );
+
+
+  element.innerHTML =
+    '<p class="empty">Loading…</p>';
+
+
+  try{
+
+    const data =
+      await api(
+        '/sellers/me/products'
+      );
+
+
+    const products =
+      data.products || [];
+
+
+    let header = '';
+
+
+    if(mode === 'inventory'){
+
+      header = `
+
+        <h1>
+          Inventory
+        </h1>
+
+        <p class="sub">
+          Update stock levels per product.
+        </p>
+
+      `;
+
+    }else{
+
+      header = `
+
+        <h1>
+          Products
+        </h1>
+
+        <p class="sub">
+          Manage your product catalog.
+        </p>
+
+        <button
+          class="btn"
+          onclick="openProductModal()"
+        >
+          + Add Product
+        </button>
+
+      `;
+
+    }
+
+
+    if(!products.length){
+
+      element.innerHTML =
+        header +
+        `
+          <p class="empty">
+            No products yet.
+          </p>
+        `;
+
+      return;
+    }
+
+
+    element.innerHTML =
+      header +
+
+      `
+
+      <table style="margin-top:16px;">
+
+        <thead>
+
+          <tr>
+
+            <th>Name</th>
+
+            <th>Price</th>
+
+            <th>Stock</th>
+
+            <th>Status</th>
+
+            <th>
+              ${mode === 'inventory'
+                ? 'Update'
+                : 'Action'}
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          ${
+            products
+              .map(product => {
+
+                const status =
+                  product.status || 'pending_approval';
+
+
+                return `
+
+                  <tr>
+
+                    <td>
+                      ${escapeHtml(product.name)}
+                    </td>
+
+                    <td>
+                      ₹${Number(product.base_price || 0).toLocaleString('en-IN')}
+                    </td>
+
+                    <td>
+                      ${Number(product.stock || 0)}
+                    </td>
+
+                    <td>
+
+                      <span
+                        class="pill ${status}"
+                      >
+                        ${escapeHtml(
+                          status.replace(/_/g,' ')
+                        )}
+                      </span>
+
+                    </td>
+
+
+                    <td>
+
+                      ${
+                        mode === 'inventory'
+
+                        ?
+
+                        `
+                          <input
+                            type="number"
+                            min="0"
+                            value="${Number(product.stock || 0)}"
+                            style="width:80px;"
+                            onchange="
+                              updateStock(
+                                ${product.id},
+                                this.value
+                              )
+                            "
+                          >
+                        `
+
+                        :
+
+                        `
+                          <a
+                            href="#"
+                            onclick="
+                              deleteProduct(${product.id});
+                              return false;
+                            "
+                            style="color:var(--red);"
+                          >
+                            Delete
+                          </a>
+                        `
+                      }
+
+                    </td>
+
+                  </tr>
+
+                `;
+
+              })
+              .join('')
+          }
+
+        </tbody>
+
+      </table>
+
+      `;
+
+  }catch(error){
+
+    element.innerHTML = `
+
+      <p class="empty">
+        ${escapeHtml(error.message)}
+      </p>
+
+    `;
+
+  }
 }
+
+
+/* =========================================================
+   OPEN PRODUCT MODAL
+========================================================= */
+
 function openProductModal(){
-  document.getElementById('pCategory').innerHTML = state.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  document.getElementById('productModalBg').classList.add('show');
+
+  const categorySelect =
+    document.getElementById(
+      'pCategory'
+    );
+
+
+  if(!state.categories.length){
+
+    showToast(
+      'Categories could not be loaded.'
+    );
+
+    return;
+  }
+
+
+  categorySelect.innerHTML = `
+
+    <option value="">
+      Select category
+    </option>
+
+    ${
+      state.categories
+        .map(category => `
+
+          <option value="${category.id}">
+            ${escapeHtml(category.name)}
+          </option>
+
+        `)
+        .join('')
+    }
+
+  `;
+
+
+  document
+    .getElementById('pName')
+    .value = '';
+
+
+  document
+    .getElementById('pDescription')
+    .value = '';
+
+
+  document
+    .getElementById('pPrice')
+    .value = '';
+
+
+  document
+    .getElementById('pMrp')
+    .value = '';
+
+
+  document
+    .getElementById('pStock')
+    .value = '20';
+
+
+  document
+    .getElementById('productModalBg')
+    .classList.add('show');
 }
+
+
+/* =========================================================
+   SUBMIT PRODUCT
+========================================================= */
+
 async function submitProduct(){
-  try {
-    const body = {
-      name: document.getElementById('pName').value,
-      category_id: parseInt(document.getElementById('pCategory').value, 10),
-      description: document.getElementById('pDescription').value,
-      base_price: parseFloat(document.getElementById('pPrice').value),
-      mrp: parseFloat(document.getElementById('pMrp').value) || null
-    };
-    const result = await api('/products', { method:'POST', body });
-    await api(`/sellers/me/products/${result.product.id}/inventory`, { method:'PUT', body:{ quantity: parseInt(document.getElementById('pStock').value,10) || 0 } });
-    document.getElementById('productModalBg').classList.remove('show');
-    showToast('Product submitted for admin approval.');
+
+  try{
+
+    const name =
+      document
+        .getElementById('pName')
+        .value
+        .trim();
+
+
+    const categoryId =
+      parseInt(
+        document
+          .getElementById('pCategory')
+          .value,
+        10
+      );
+
+
+    const description =
+      document
+        .getElementById('pDescription')
+        .value
+        .trim();
+
+
+    const basePrice =
+      parseFloat(
+        document
+          .getElementById('pPrice')
+          .value
+      );
+
+
+    const mrpValue =
+      document
+        .getElementById('pMrp')
+        .value;
+
+
+    const mrp =
+      mrpValue
+        ? parseFloat(mrpValue)
+        : null;
+
+
+    const stock =
+      parseInt(
+        document
+          .getElementById('pStock')
+          .value,
+        10
+      );
+
+
+    /* VALIDATION */
+
+    if(!name){
+
+      showToast(
+        'Please enter product name.'
+      );
+
+      return;
+    }
+
+
+    if(!categoryId){
+
+      showToast(
+        'Please select a category.'
+      );
+
+      return;
+    }
+
+
+    if(
+      !Number.isFinite(basePrice) ||
+      basePrice <= 0
+    ){
+
+      showToast(
+        'Please enter a valid product price.'
+      );
+
+      return;
+    }
+
+
+    if(
+      mrp !== null &&
+      (
+        !Number.isFinite(mrp) ||
+        mrp <= 0
+      )
+    ){
+
+      showToast(
+        'Please enter a valid MRP.'
+      );
+
+      return;
+    }
+
+
+    if(
+      mrp !== null &&
+      mrp < basePrice
+    ){
+
+      showToast(
+        'MRP should be equal to or greater than the base price.'
+      );
+
+      return;
+    }
+
+
+    if(
+      !Number.isInteger(stock) ||
+      stock < 0
+    ){
+
+      showToast(
+        'Please enter valid stock quantity.'
+      );
+
+      return;
+    }
+
+
+    /* CREATE PRODUCT */
+
+    const result =
+      await api(
+        '/products',
+        {
+          method:'POST',
+
+          body:{
+            name:name,
+            category_id:categoryId,
+            description:description,
+            base_price:basePrice,
+            mrp:mrp
+          }
+        }
+      );
+
+
+    /* UPDATE INITIAL STOCK */
+
+    if(
+      result &&
+      result.product &&
+      result.product.id
+    ){
+
+      await api(
+        `/sellers/me/products/${result.product.id}/inventory`,
+        {
+          method:'PUT',
+
+          body:{
+            quantity:stock
+          }
+        }
+      );
+
+    }
+
+
+    /* CLOSE MODAL */
+
+    document
+      .getElementById('productModalBg')
+      .classList.remove('show');
+
+
+    showToast(
+      'Product submitted for admin approval.'
+    );
+
+
     renderProducts();
-  } catch (e) { showToast(e.message); }
-}
-async function deleteProduct(id){ if(!confirm('Delete this product?')) return; try{ await api(`/products/${id}`,{method:'DELETE'}); showToast('Deleted.'); renderProducts(); }catch(e){showToast(e.message);} }
-async function updateStock(id, qty){ try{ await api(`/sellers/me/products/${id}/inventory`,{method:'PUT',body:{quantity:parseInt(qty,10)}}); showToast('Stock updated.'); }catch(e){showToast(e.message);} }
 
-/* ---------------- ORDERS ---------------- */
+
+  }catch(error){
+
+    showToast(
+      error.message ||
+      'Could not create product.'
+    );
+
+  }
+}
+
+
+/* =========================================================
+   DELETE PRODUCT
+========================================================= */
+
+async function deleteProduct(id){
+
+  if(
+    !confirm(
+      'Are you sure you want to delete this product?'
+    )
+  ){
+
+    return;
+  }
+
+
+  try{
+
+    await api(
+      `/products/${id}`,
+      {
+        method:'DELETE'
+      }
+    );
+
+
+    showToast(
+      'Product deleted.'
+    );
+
+
+    renderProducts();
+
+  }catch(error){
+
+    showToast(
+      error.message
+    );
+
+  }
+}
+
+
+/* =========================================================
+   UPDATE STOCK
+========================================================= */
+
+async function updateStock(id, quantity){
+
+  const stock =
+    parseInt(quantity,10);
+
+
+  if(
+    !Number.isInteger(stock) ||
+    stock < 0
+  ){
+
+    showToast(
+      'Stock must be 0 or greater.'
+    );
+
+    return;
+  }
+
+
+  try{
+
+    await api(
+      `/sellers/me/products/${id}/inventory`,
+      {
+        method:'PUT',
+
+        body:{
+          quantity:stock
+        }
+      }
+    );
+
+
+    showToast(
+      'Stock updated.'
+    );
+
+  }catch(error){
+
+    showToast(
+      error.message
+    );
+
+    renderProducts('inventory');
+  }
+}
+
+
+/* =========================================================
+   ORDERS
+========================================================= */
+
 async function renderOrders(){
-  const el = document.getElementById('view-orders');
-  el.innerHTML = '<p class="empty">Loading…</p>';
-  try {
-    const data = await api('/sellers/me/orders');
-    el.innerHTML = `<h1>Orders</h1><p class="sub">Accept, prepare and pack orders for your products.</p>
-      ${data.order_items.length ? `<table style="margin-top:16px;"><thead><tr><th>Order</th><th>Item</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-      ${data.order_items.map(i => `<tr>
-        <td>${i.order_number}</td><td>${i.product_name_snapshot}</td><td>${i.quantity}</td>
-        <td><span class="pill ${i.item_status}">${i.item_status}</span></td>
-        <td>
-          ${i.item_status === 'pending' ? `<button class="btn" onclick="setItemStatus(${i.id},'accepted')">Accept</button> <button class="btn danger" onclick="setItemStatus(${i.id},'rejected')">Reject</button>` : ''}
-          ${i.item_status === 'accepted' ? `<button class="btn" onclick="setItemStatus(${i.id},'preparing')">Start Preparing</button>` : ''}
-          ${i.item_status === 'preparing' ? `<button class="btn" onclick="packItem(${i.id})">Mark Packed</button>` : ''}
-        </td>
-      </tr>`).join('')}</tbody></table>` : '<p class="empty">No orders yet.</p>'}`;
-  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+
+  const element =
+    document.getElementById(
+      'view-orders'
+    );
+
+
+  element.innerHTML =
+    '<p class="empty">Loading…</p>';
+
+
+  try{
+
+    const data =
+      await api(
+        '/sellers/me/orders'
+      );
+
+
+    const orderItems =
+      data.order_items || [];
+
+
+    element.innerHTML = `
+
+      <h1>
+        Orders
+      </h1>
+
+      <p class="sub">
+        Accept, prepare and pack orders for your products.
+      </p>
+
+
+      ${
+        orderItems.length
+
+        ?
+
+        `
+
+          <table style="margin-top:16px;">
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  Order
+                </th>
+
+                <th>
+                  Item
+                </th>
+
+                <th>
+                  Qty
+                </th>
+
+                <th>
+                  Status
+                </th>
+
+                <th>
+                  Actions
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              ${
+                orderItems
+                  .map(item => `
+
+                    <tr>
+
+                      <td>
+                        ${escapeHtml(item.order_number)}
+                      </td>
+
+                      <td>
+                        ${escapeHtml(
+                          item.product_name_snapshot
+                        )}
+                      </td>
+
+                      <td>
+                        ${Number(item.quantity || 0)}
+                      </td>
+
+                      <td>
+
+                        <span
+                          class="pill ${item.item_status}"
+                        >
+                          ${escapeHtml(item.item_status)}
+                        </span>
+
+                      </td>
+
+
+                      <td>
+
+                        ${
+                          item.item_status === 'pending'
+
+                          ?
+
+                          `
+                            <button
+                              class="btn"
+                              onclick="
+                                setItemStatus(
+                                  ${item.id},
+                                  'accepted'
+                                )
+                              "
+                            >
+                              Accept
+                            </button>
+
+                            <button
+                              class="btn danger"
+                              onclick="
+                                setItemStatus(
+                                  ${item.id},
+                                  'rejected'
+                                )
+                              "
+                            >
+                              Reject
+                            </button>
+                          `
+
+                          : ''
+                        }
+
+
+                        ${
+                          item.item_status === 'accepted'
+
+                          ?
+
+                          `
+                            <button
+                              class="btn"
+                              onclick="
+                                setItemStatus(
+                                  ${item.id},
+                                  'preparing'
+                                )
+                              "
+                            >
+                              Start Preparing
+                            </button>
+                          `
+
+                          : ''
+                        }
+
+
+                        ${
+                          item.item_status === 'preparing'
+
+                          ?
+
+                          `
+                            <button
+                              class="btn"
+                              onclick="
+                                packItem(
+                                  ${item.id}
+                                )
+                              "
+                            >
+                              Mark Packed
+                            </button>
+                          `
+
+                          : ''
+                        }
+
+                      </td>
+
+                    </tr>
+
+                  `)
+                  .join('')
+              }
+
+            </tbody>
+
+          </table>
+
+        `
+
+        :
+
+        `
+          <p class="empty">
+            No orders yet.
+          </p>
+        `
+      }
+
+    `;
+
+  }catch(error){
+
+    element.innerHTML = `
+
+      <p class="empty">
+        ${escapeHtml(error.message)}
+      </p>
+
+    `;
+
+  }
 }
-async function setItemStatus(itemId, status){ try{ await api(`/sellers/me/orders/${itemId}/status`,{method:'PATCH',body:{status}}); showToast('Updated.'); renderOrders(); }catch(e){showToast(e.message);} }
+
+
+/* =========================================================
+   ORDER STATUS
+========================================================= */
+
+async function setItemStatus(
+  itemId,
+  status
+){
+
+  try{
+
+    await api(
+      `/sellers/me/orders/${itemId}/status`,
+      {
+        method:'PATCH',
+
+        body:{
+          status:status
+        }
+      }
+    );
+
+
+    showToast(
+      'Order status updated.'
+    );
+
+
+    renderOrders();
+
+  }catch(error){
+
+    showToast(
+      error.message
+    );
+
+  }
+}
+
+
+/* =========================================================
+   PACK ORDER
+========================================================= */
+
 async function packItem(itemId){
-  const tracking = prompt('Enter a tracking number for this shipment:', 'QGTRK' + Math.floor(Math.random()*900000));
-  try{ await api(`/sellers/me/orders/${itemId}/status`,{method:'PATCH',body:{status:'packed', tracking_number: tracking}}); showToast('Marked packed.'); renderOrders(); }catch(e){showToast(e.message);}
+
+  const tracking =
+    prompt(
+      'Enter the actual tracking number for this shipment:'
+    );
+
+
+  if(tracking === null){
+
+    return;
+  }
+
+
+  const cleanTracking =
+    tracking.trim();
+
+
+  if(!cleanTracking){
+
+    showToast(
+      'Tracking number is required.'
+    );
+
+    return;
+  }
+
+
+  try{
+
+    await api(
+      `/sellers/me/orders/${itemId}/status`,
+      {
+        method:'PATCH',
+
+        body:{
+          status:'packed',
+          tracking_number:cleanTracking
+        }
+      }
+    );
+
+
+    showToast(
+      'Order marked as packed.'
+    );
+
+
+    renderOrders();
+
+  }catch(error){
+
+    showToast(
+      error.message
+    );
+
+  }
 }
 
-/* ---------------- EARNINGS ---------------- */
+
+/* =========================================================
+   EARNINGS
+========================================================= */
+
 async function renderEarnings(){
-  const el = document.getElementById('view-earnings');
-  el.innerHTML = '<p class="empty">Loading…</p>';
-  try {
-    const data = await api('/sellers/me/payouts');
-    el.innerHTML = `<h1>Earnings & Payouts</h1><p class="sub">Commission is deducted automatically per order; payouts are issued by QuickGift admin.</p>
-      ${data.payouts.length ? `<table style="margin-top:16px;"><thead><tr><th>Period</th><th>Amount</th><th>Status</th></tr></thead><tbody>
-      ${data.payouts.map(p=>`<tr><td>${p.period_start||'—'} to ${p.period_end||'—'}</td><td>₹${p.amount}</td><td><span class="pill ${p.status}">${p.status}</span></td></tr>`).join('')}</tbody></table>`
-      : '<p class="empty">No payouts issued yet.</p>'}`;
-  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+
+  const element =
+    document.getElementById(
+      'view-earnings'
+    );
+
+
+  element.innerHTML =
+    '<p class="empty">Loading…</p>';
+
+
+  try{
+
+    const data =
+      await api(
+        '/sellers/me/payouts'
+      );
+
+
+    const payouts =
+      data.payouts || [];
+
+
+    element.innerHTML = `
+
+      <h1>
+        Earnings & Payouts
+      </h1>
+
+      <p class="sub">
+        Commission is deducted automatically per order;
+        payouts are issued by QuickGift admin.
+      </p>
+
+
+      ${
+        payouts.length
+
+        ?
+
+        `
+
+          <table style="margin-top:16px;">
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  Period
+                </th>
+
+                <th>
+                  Amount
+                </th>
+
+                <th>
+                  Status
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              ${
+                payouts
+                  .map(payout => `
+
+                    <tr>
+
+                      <td>
+                        ${
+                          payout.period_start || '—'
+                        }
+
+                        to
+
+                        ${
+                          payout.period_end || '—'
+                        }
+                      </td>
+
+                      <td>
+                        ₹${Number(
+                          payout.amount || 0
+                        ).toLocaleString('en-IN')}
+                      </td>
+
+                      <td>
+
+                        <span
+                          class="pill ${payout.status}"
+                        >
+                          ${escapeHtml(
+                            payout.status
+                          )}
+                        </span>
+
+                      </td>
+
+                    </tr>
+
+                  `)
+                  .join('')
+              }
+
+            </tbody>
+
+          </table>
+
+        `
+
+        :
+
+        `
+          <p class="empty">
+            No payouts issued yet.
+          </p>
+        `
+      }
+
+    `;
+
+  }catch(error){
+
+    element.innerHTML = `
+
+      <p class="empty">
+        ${escapeHtml(error.message)}
+      </p>
+
+    `;
+
+  }
 }
 
-/* ---------------- PROFILE ---------------- */
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
 async function renderProfile(){
-  const el = document.getElementById('view-profile');
-  try {
-    const d = await api('/sellers/me');
-    el.innerHTML = `<h1>Business Profile</h1>
-      <table style="margin-top:16px;"><tbody>
-        <tr><td><b>Business Name</b></td><td>${d.seller.business_name}</td></tr>
-        <tr><td><b>Email</b></td><td>${d.seller.business_email||'—'}</td></tr>
-        <tr><td><b>Status</b></td><td><span class="pill ${d.seller.status}">${d.seller.status}</span></td></tr>
-        <tr><td><b>Commission Rate</b></td><td>${d.seller.commission_rate}%</td></tr>
-      </tbody></table>`;
-  } catch (e) { el.innerHTML = `<p class="empty">${e.message}</p>`; }
+
+  const element =
+    document.getElementById(
+      'view-profile'
+    );
+
+
+  element.innerHTML =
+    '<p class="empty">Loading…</p>';
+
+
+  try{
+
+    const data =
+      await api(
+        '/sellers/me'
+      );
+
+
+    const seller =
+      data.seller;
+
+
+    element.innerHTML = `
+
+      <h1>
+        Business Profile
+      </h1>
+
+
+      <table style="margin-top:16px;">
+
+        <tbody>
+
+          <tr>
+
+            <td>
+              <b>
+                Business Name
+              </b>
+            </td>
+
+            <td>
+              ${escapeHtml(
+                seller.business_name
+              )}
+            </td>
+
+          </tr>
+
+
+          <tr>
+
+            <td>
+              <b>
+                Email
+              </b>
+            </td>
+
+            <td>
+              ${escapeHtml(
+                seller.business_email || '—'
+              )}
+            </td>
+
+          </tr>
+
+
+          <tr>
+
+            <td>
+              <b>
+                Status
+              </b>
+            </td>
+
+            <td>
+
+              <span
+                class="pill ${seller.status}"
+              >
+                ${escapeHtml(
+                  seller.status
+                )}
+              </span>
+
+            </td>
+
+          </tr>
+
+
+          <tr>
+
+            <td>
+              <b>
+                Commission Rate
+              </b>
+            </td>
+
+            <td>
+              ${Number(
+                seller.commission_rate || 0
+              )}%
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    `;
+
+  }catch(error){
+
+    element.innerHTML = `
+
+      <p class="empty">
+        ${escapeHtml(error.message)}
+      </p>
+
+    `;
+
+  }
 }
+
+
+/* =========================================================
+   HTML ESCAPE
+   Prevents user/product text from being inserted as HTML.
+========================================================= */
+
+function escapeHtml(value){
+
+  if(value === null || value === undefined){
+    return '';
+  }
+
+
+  return String(value)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
 </script>
+
 </body>
 </html>
