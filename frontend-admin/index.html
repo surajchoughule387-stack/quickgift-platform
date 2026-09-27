@@ -51,7 +51,7 @@ window.QUICKGIFT_API_BASE = "https://quickgift-backend.onrender.com/api";
     <p class="sub" style="margin-bottom:16px;">Staff sign-in only.</p>
     <div class="field-lbl">Email</div><input type="email" id="authEmail">
     <div class="field-lbl">Password</div><input type="password" id="authPassword">
-    <button class="btn" style="width:100%;" onclick="alert('Login button working'); login()">Sign In</button>
+    <button class="btn" style="width:100%;" onclick="login()">Sign In</button>
   </div>
 </div>
 
@@ -116,19 +116,50 @@ async function api(path, opts = {}) {
 }
 
 const STAFF_ROLES = ['admin','super_admin','ops_manager','support_agent','finance_manager'];
-
-async function login(){
+  async function login(){
   try {
-    const email = document.getElementById('authEmail').value;
+    const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPassword').value;
-    const data = await api('/auth/login', { method:'POST', body:{ email, password } });
-    if (!STAFF_ROLES.includes(data.user.role)) { showToast('This account does not have admin access.'); return; }
-    state.token = data.token; state.user = data.user;
+
+    if (!email || !password) {
+      showToast('Please enter email and password.');
+      return;
+    }
+
+    showToast('Signing in...');
+
+    const data = await api('/auth/login', {
+      method: 'POST',
+      body: {
+        email: email,
+        password: password
+      }
+    });
+
+    if (!data.user || !data.token) {
+      showToast('Login response is invalid.');
+      return;
+    }
+
+    if (!STAFF_ROLES.includes(data.user.role)) {
+      showToast('This account does not have admin access.');
+      return;
+    }
+
+    state.token = data.token;
+    state.user = data.user;
+
     document.getElementById('authModalBg').classList.remove('show');
     document.getElementById('shell').style.display = 'flex';
+
     showView('dashboard');
-  } catch (e) { showToast(e.message); }
+
+  } catch (e) {
+    showToast('Login failed: ' + (e.message || 'Unknown error'));
+  }
 }
+
+
 function logout(){ state = { token:null, user:null }; document.getElementById('shell').style.display='none'; document.getElementById('authModalBg').classList.add('show'); }
 
 function showView(name, el){
