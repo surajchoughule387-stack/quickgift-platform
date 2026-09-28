@@ -25,6 +25,8 @@ const supportRoutes = require('./src/routes/support.routes');
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(helmet());
 const allowedOrigins = (process.env.CORS_ORIGIN || '*')
   .split(',')
