@@ -55,7 +55,52 @@ router.get('/me', authenticate, requireRole('seller'), async (req, res, next) =>
     res.json({ seller: await getOwnSeller(req.user.id) });
   } catch (err) { next(err); }
 });
+// PATCH /api/sellers/me — update seller business profile
+router.patch('/me', authenticate, requireRole('seller'), async (req, res, next) => {
+  try {
+    const seller = await getOwnSeller(req.user.id);
 
+    const {
+      business_name,
+      business_email,
+      business_phone,
+      business_address,
+      country_id
+    } = req.body;
+
+    if (!business_name || !business_name.trim()) {
+      throw new ApiError(400, 'business_name is required.');
+    }
+
+    const result = await db.query(
+      `UPDATE sellers
+       SET business_name = $1,
+           business_email = $2,
+           business_phone = $3,
+           business_address = $4,
+           country_id = $5,
+           updated_at = now()
+       WHERE id = $6 AND user_id = $7
+       RETURNING *`,
+      [
+        business_name.trim(),
+        business_email || null,
+        business_phone || null,
+        business_address || null,
+        country_id || null,
+        seller.id,
+        req.user.id
+      ]
+    );
+
+    res.json({
+      message: 'Seller profile updated successfully.',
+      seller: result.rows[0]
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 // GET /api/sellers/me/dashboard — spec section 16
 router.get('/me/dashboard', authenticate, requireRole('seller'), async (req, res, next) => {
   try {
