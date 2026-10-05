@@ -22,4 +22,5 @@ router.get('/status', authenticate, requireRole('admin'), async (req, res, next)
   }
 });
 
+
 module.exports = router;
