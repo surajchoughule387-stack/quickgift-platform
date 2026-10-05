@@ -22,7 +22,7 @@ const couponsRoutes = require('./src/routes/coupons.routes');
 const reviewsRoutes = require('./src/routes/reviews.routes');
 const notificationsRoutes = require('./src/routes/notifications.routes');
 const supportRoutes = require('./src/routes/support.routes');
-
+const shiprocketRoutes = require('./src/routes/shiprocket.routes');
 const app = express();
 
 app.set('trust proxy', 1);
