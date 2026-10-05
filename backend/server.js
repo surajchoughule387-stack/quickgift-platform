@@ -67,6 +67,7 @@ app.use('/api/coupons', couponsRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/shiprocket', shiprocketRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
