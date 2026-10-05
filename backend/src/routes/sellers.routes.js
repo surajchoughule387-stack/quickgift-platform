@@ -513,6 +513,7 @@ router.patch(
         preparing: 'preparing',
         packed: 'packed'
       };
+      
 
       await db.query(
         `UPDATE orders
