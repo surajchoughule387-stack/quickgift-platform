@@ -27,6 +27,7 @@ router.post('/register', authenticate, async (req, res, next) => {
       );
     }
 
+    
     const {
       business_name,
       business_email,
