@@ -533,6 +533,22 @@
       📥 Inventory
     </a>
 
+
+<a
+  href="#"
+  onclick="showView('warehouses',this);return false;"
+>
+  🏬 Warehouses
+</a>
+
+<a
+  href="#"
+  onclick="showView('stock-requests',this);return false;"
+>
+  📋 Stock Requests
+</a>
+
+    
     <a
       href="#"
       onclick="showView('earnings',this);return false;"
@@ -563,6 +579,8 @@
 
   <!-- MAIN CONTENT -->
 
+  
+
   <div class="main">
 
     <div id="view-dashboard"></div>
@@ -582,6 +600,18 @@
       style="display:none;"
     ></div>
 
+    <!-- NEW: Warehouse Management -->
+    <div
+      id="view-warehouses"
+      style="display:none;"
+    ></div>
+
+    <!-- NEW: Stock Request History -->
+    <div
+      id="view-stock-requests"
+      style="display:none;"
+    ></div>
+
     <div
       id="view-earnings"
       style="display:none;"
@@ -595,7 +625,6 @@
   </div>
 
 </div>
-
 
 <!-- ADD PRODUCT MODAL -->
 
