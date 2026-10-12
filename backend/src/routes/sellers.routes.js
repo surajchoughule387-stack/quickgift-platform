@@ -335,6 +335,8 @@ router.get(
 // PUT /api/sellers/me/products/:id/inventory
 // { quantity, warehouse_id?, variant_id? }
 // ---------------------------------------------------------------------------
+
+
 router.put(
   '/me/products/:id/inventory',
   authenticate,
@@ -343,65 +345,136 @@ router.put(
     try {
       const seller = await getOwnSeller(req.user.id);
 
+      const productId = Number(req.params.id);
+      const { quantity, warehouse_id, variant_id = null, reason } = req.body;
+
+      if (!Number.isSafeInteger(productId) || productId <= 0) {
+        throw new ApiError(400, 'Invalid product ID.');
+      }
+
+      if (
+        quantity === undefined ||
+        !/^\d+$/.test(String(quantity)) ||
+        !Number.isSafeInteger(Number(quantity)) ||
+        Number(quantity) < 0
+      ) {
+        throw new ApiError(
+          400,
+          'Quantity must be a non-negative integer.'
+        );
+      }
+
+      const warehouseId = Number(warehouse_id);
+
+      if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
+        throw new ApiError(400, 'Please select a warehouse.');
+      }
+
+      if (typeof reason !== 'string' || !reason.trim()) {
+        throw new ApiError(400, 'Please provide a reason for the stock change.');
+      }
+
+      if (reason.trim().length > 1000) {
+        throw new ApiError(400, 'Reason must be 1000 characters or fewer.');
+      }
+
       const product = await db.query(
         `SELECT id
          FROM products
-         WHERE id = $1
-           AND seller_id = $2`,
-        [req.params.id, seller.id]
+         WHERE id = $1 AND seller_id = $2`,
+        [productId, seller.id]
       );
 
       if (!product.rows[0]) {
         throw new ApiError(404, 'Product not found for this seller.');
       }
 
-      const {
-        quantity,
-        warehouse_id = null,
-        variant_id = null
-      } = req.body;
+      if (variant_id !== null) {
+        const variantId = Number(variant_id);
 
-      const existing = await db.query(
+        if (!Number.isSafeInteger(variantId) || variantId <= 0) {
+          throw new ApiError(400, 'Invalid variant ID.');
+        }
+
+        const variant = await db.query(
+          `SELECT id
+           FROM product_variants
+           WHERE id = $1 AND product_id = $2`,
+          [variantId, productId]
+        );
+
+        if (!variant.rows[0]) {
+          throw new ApiError(400, 'Variant does not belong to this product.');
+        }
+      }
+
+      const warehouse = await db.query(
         `SELECT id
-         FROM inventory
-         WHERE product_id = $1
-           AND (
-             variant_id = $2
-             OR ($2::int IS NULL AND variant_id IS NULL)
-           )`,
-        [req.params.id, variant_id]
+         FROM warehouses
+         WHERE id = $1
+           AND seller_id = $2
+           AND is_active = TRUE
+           AND approval_status = 'approved'`,
+        [warehouseId, seller.id]
       );
 
-      if (existing.rows[0]) {
-        await db.query(
-          `UPDATE inventory
-           SET quantity = $1,
-               warehouse_id = $2,
-               updated_at = now()
-           WHERE id = $3`,
-          [
-            quantity,
-            warehouse_id,
-            existing.rows[0].id
-          ]
-        );
-      } else {
-        await db.query(
-          `INSERT INTO inventory
-           (product_id, variant_id, warehouse_id, quantity)
-           VALUES ($1,$2,$3,$4)`,
-          [
-            req.params.id,
-            variant_id,
-            warehouse_id,
-            quantity
-          ]
+      if (!warehouse.rows[0]) {
+        throw new ApiError(
+          400,
+          'Select an active warehouse approved by Admin.'
         );
       }
 
-      res.json({
-        message: 'Inventory updated.'
-      });
+      const current = await db.query(
+        `SELECT COALESCE(SUM(quantity), 0) AS quantity
+         FROM inventory
+         WHERE product_id = $1
+           AND warehouse_id = $2
+           AND variant_id IS NOT DISTINCT FROM $3::integer`,
+        [productId, warehouseId, variant_id]
+      );
+
+      try {
+        const request = await db.query(
+          `INSERT INTO stock_change_requests (
+             seller_id,
+             product_id,
+             variant_id,
+             warehouse_id,
+             current_quantity,
+             requested_quantity,
+             reason,
+             status,
+             requested_by
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)
+           RETURNING id, status, current_quantity, requested_quantity,
+                     reason, warehouse_id, created_at`,
+          [
+            seller.id,
+            productId,
+            variant_id,
+            warehouseId,
+            Number(current.rows[0].quantity),
+            Number(quantity),
+            reason.trim(),
+            req.user.id
+          ]
+        );
+
+        return res.status(201).json({
+          message: 'Stock change request submitted for Admin approval.',
+          request: request.rows[0]
+        });
+      } catch (err) {
+        if (err.code === '23505') {
+          throw new ApiError(
+            409,
+            'A pending stock request already exists for this product, variant and warehouse.'
+          );
+        }
+        throw err;
+      }
     } catch (err) {
       next(err);
     }
