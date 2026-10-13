@@ -677,40 +677,47 @@ router.get(
     }
   }
 );
+
+
+
 /* --------------------------------------------------------------------------
-   GET /api/sellers/me/warehouses
-   Returns warehouses belonging to the logged-in seller.
+GET /api/sellers/me/warehouses
+Returns warehouses belonging to the logged-in seller.
 --------------------------------------------------------------------------- */
 router.get(
-  '/me/warehouses',
-  authenticate,
-  requireRole('seller'),
-  async (req, res, next) => {
-    try {
-      const seller = await getOwnSeller(req.user.id);
+'/me/warehouses',
+authenticate,
+requireRole('seller'),
+async (req, res, next) => {
+try {
+const seller = await getOwnSeller(req.user.id);
 
-      const { rows } = await db.query(
-        `SELECT
-           id,
-           name,
-           address,
-           is_active,
-           approval_status,
-           approved_at,
-           rejection_reason,
-           created_at
-         FROM warehouses
-         WHERE seller_id = $1
-         ORDER BY created_at DESC, id DESC`,
-        [seller.id]
-      );
+  const { rows } = await db.query(
+    `SELECT
+       id,
+       name,
+       address,
+       is_active,
+       approval_status,
+       approved_at,
+       rejection_reason
+     FROM warehouses
+     WHERE seller_id = $1
+     ORDER BY id DESC`,
+    [seller.id]
+  );
 
-      res.json({ warehouses: rows });
-    } catch (err) {
-      next(err);
-    }
-  }
+  res.json({ warehouses: rows });
+} catch (err) {
+  next(err);
+}
+
+}
 );
+
+
+
+        
 
 /* --------------------------------------------------------------------------
    GET /api/sellers/me/stock-change-requests
