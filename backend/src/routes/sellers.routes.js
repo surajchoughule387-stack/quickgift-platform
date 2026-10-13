@@ -676,5 +676,104 @@ router.get(
     }
   }
 );
+/* --------------------------------------------------------------------------
+   GET /api/sellers/me/warehouses
+   Returns warehouses belonging to the logged-in seller.
+--------------------------------------------------------------------------- */
+router.get(
+  '/me/warehouses',
+  authenticate,
+  requireRole('seller'),
+  async (req, res, next) => {
+    try {
+      const seller = await getOwnSeller(req.user.id);
+
+      const { rows } = await db.query(
+        `SELECT
+           id,
+           name,
+           address,
+           is_active,
+           approval_status,
+           approved_at,
+           rejection_reason,
+           created_at
+         FROM warehouses
+         WHERE seller_id = $1
+         ORDER BY created_at DESC, id DESC`,
+        [seller.id]
+      );
+
+      res.json({ warehouses: rows });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/* --------------------------------------------------------------------------
+   GET /api/sellers/me/stock-change-requests
+   Returns stock-request history for the logged-in seller.
+--------------------------------------------------------------------------- */
+router.get(
+  '/me/stock-change-requests',
+  authenticate,
+  requireRole('seller'),
+  async (req, res, next) => {
+    try {
+      const seller = await getOwnSeller(req.user.id);
+      const { status } = req.query;
+
+      const allowedStatuses = ['pending', 'approved', 'rejected'];
+
+      if (status && !allowedStatuses.includes(status)) {
+        throw new ApiError(
+          400,
+          'status must be pending, approved, or rejected.'
+        );
+      }
+
+      const values = [seller.id];
+      let statusFilter = '';
+
+      if (status) {
+        values.push(status);
+        statusFilter = ' AND scr.status = $2';
+      }
+
+      const { rows } = await db.query(
+        `SELECT
+           scr.id,
+           scr.product_id,
+           p.name AS product_name,
+           scr.variant_id,
+           scr.warehouse_id,
+           w.name AS warehouse_name,
+           scr.current_quantity,
+           scr.requested_quantity,
+           scr.reason,
+           scr.status,
+           scr.admin_note,
+           scr.requested_by,
+           scr.reviewed_by,
+           scr.reviewed_at,
+           scr.created_at,
+           scr.updated_at
+         FROM stock_change_requests scr
+         JOIN products p ON p.id = scr.product_id
+         JOIN warehouses w ON w.id = scr.warehouse_id
+         WHERE scr.seller_id = $1${statusFilter}
+         ORDER BY scr.created_at DESC, scr.id DESC
+         LIMIT 100`,
+        values
+      );
+
+      res.json({ requests: rows });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 
 module.exports = router;
