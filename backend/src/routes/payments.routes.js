@@ -71,6 +71,19 @@ router.post('/webhook', async (req, res, next) => {
       );
     }
 
+    const allowedWebhookStatuses = new Set([
+      'captured',
+      'failed',
+      'refunded',
+    ]);
+
+    if (!allowedWebhookStatuses.has(status)) {
+      return res.status(200).json({
+        success: true,
+        message: 'Webhook event ignored.',
+      });
+    }
+
     // First find payment using Razorpay ORDER ID.
     let paymentRes;
 
