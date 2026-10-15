@@ -135,21 +135,22 @@ router.get(
     try {
       const seller = await getOwnSeller(req.user.id);
 
+    
       const { rows } = await db.query(
-SELECT
-  id,
-  name,
-  address,
-  country_id,
-  is_active,
-  approval_status
-FROM warehouses
-         
+        `SELECT
+           id,
+           name,
+           address,
+           country_id,
+           is_active,
+           approval_status
+         FROM warehouses
          WHERE seller_id = $1
            AND is_active = TRUE
          ORDER BY id DESC`,
         [seller.id]
       );
+
 
       res.json({ warehouses: rows });
     } catch (err) {
