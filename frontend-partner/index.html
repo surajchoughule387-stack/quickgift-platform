@@ -2091,23 +2091,36 @@ async function submitProduct(){
 
 
     
+
+
     /* CLOSE MODAL */
 
     document
       .getElementById('productModalBg')
       .classList.remove('show');
 
-    const stockRequestMessage =
-      stock === 0
-        ? 'Product submitted for admin approval. No initial stock request was needed.'
-        : !state.selectedWarehouseId
-          ? 'Product created. Initial stock was not submitted because no approved warehouse is available.'
-          : 'Product created. Check the stock request status for admin approval.';
+    let successMessage =
+      'Product submitted for admin approval.';
 
-    showToast(stockRequestMessage);
+    if(stock > 0){
+
+      if(!state.selectedWarehouseId){
+
+        successMessage =
+          'Product created, but no approved warehouse is available. Initial stock was not submitted.';
+
+      }else{
+
+        successMessage =
+          'Product created. Check the stock request status for admin approval.';
+
+      }
+
+    }
+
+    showToast(successMessage);
 
     renderProducts();
-
 
 
   }catch(error){
