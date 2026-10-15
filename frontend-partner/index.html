@@ -1141,32 +1141,30 @@ async function applyAsSeller(){
 function logout(){
 
   state = {
-    token:null,
-    user:null,
-    seller:null,
-    categories:[]
+    token: null,
+    user: null,
+    seller: null,
+    categories: [],
+    warehouses: [],
+    selectedWarehouseId: '',
+    inventoryRequests: []
   };
-
 
   document
     .getElementById('shell')
     .style.display = 'none';
 
-
   document
     .getElementById('authModalBg')
     .classList.add('show');
-
 
   document
     .getElementById('authEmail')
     .value = '';
 
-
   document
     .getElementById('authPassword')
     .value = '';
-
 
   document
     .getElementById('applyForm')
