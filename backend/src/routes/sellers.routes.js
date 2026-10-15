@@ -134,13 +134,8 @@ router.get(
   async (req, res, next) => {
     try {
       const seller = await getOwnSeller(req.user.id);
-
-    
-    
-
-
-      const { rows } = await db.query(
-        SELECT
+const { rows } = await db.query(
+        `SELECT
            id,
            name,
            address,
@@ -153,10 +148,6 @@ router.get(
          ORDER BY id DESC`,
         [seller.id]
       );
-
-      
-
-
       res.json({ warehouses: rows });
     } catch (err) {
       next(err);
