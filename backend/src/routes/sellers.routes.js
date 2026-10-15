@@ -135,7 +135,7 @@ router.get(
     try {
       const seller = await getOwnSeller(req.user.id);
 const { rows } = await db.query(
-        `SELECT
+        SELECT
            id,
            name,
            address,
@@ -145,7 +145,7 @@ const { rows } = await db.query(
          FROM warehouses
          WHERE seller_id = $1
            AND is_active = TRUE
-         ORDER BY id DESC`,
+         ORDER BY id DESC,
         [seller.id]
       );
       res.json({ warehouses: rows });
