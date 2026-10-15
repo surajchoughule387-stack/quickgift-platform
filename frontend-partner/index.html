@@ -2021,69 +2021,72 @@ async function submitProduct(){
 
 
     
-/* INITIAL STOCK REQUEST */
 
-if(
-  result &&
-  result.product &&
-  result.product.id &&
-  stock > 0
-){
+    /* INITIAL STOCK REQUEST */
 
-  if(!state.selectedWarehouseId){
+    if(
+      result &&
+      result.product &&
+      result.product.id &&
+      stock > 0
+    ){
 
-    showToast(
-      'Product created, but no approved warehouse is available. Initial stock was not submitted.'
-    );
+      if(!state.selectedWarehouseId){
 
-  }else{
+        showToast(
+          'Product created, but no approved warehouse is available. Initial stock was not submitted.'
+        );
 
-    const reason = prompt(
-      'Why are you adding initial stock for this product?'
-    );
+      }else{
 
-    if(reason === null || !reason.trim()){
+        const reason = prompt(
+          'Why are you adding initial stock for this product?'
+        );
 
-      showToast(
-        'Product created, but initial stock request was cancelled. Stock has not been changed.'
-      );
+        if(reason === null || !reason.trim()){
 
-    }else{
+          showToast(
+            'Product created, but initial stock request was cancelled. Stock has not been changed.'
+          );
 
-      try{
+        }else{
 
-        await api(
-          `/sellers/me/products/${result.product.id}/inventory`,
-          {
-            method:'PUT',
-            body:{
-              quantity:stock,
-              warehouse_id:Number(state.selectedWarehouseId),
-              reason:reason.trim()
-            }
+          try{
+
+            await api(
+              `/sellers/me/products/${result.product.id}/inventory`,
+              {
+                method:'PUT',
+                body:{
+                  quantity:stock,
+                  warehouse_id:Number(state.selectedWarehouseId),
+                  reason:reason.trim()
+                }
+              }
+            );
+
+            await loadInventoryRequests();
+
+            showToast(
+              'Product created. Initial stock request submitted for admin approval.'
+            );
+
+          }catch(stockError){
+
+            showToast(
+              'Product created, but stock request failed: ' +
+              stockError.message
+            );
+
           }
-        );
 
-        await loadInventoryRequests();
-
-        showToast(
-          'Product created. Initial stock request submitted for admin approval.'
-        );
-
-      }catch(stockError){
-
-        showToast(
-          'Product created, but stock request failed: ' +
-          stockError.message
-        );
+        }
 
       }
 
     }
 
-  }
-
-}
+    
     /* CLOSE MODAL */
 
     document
