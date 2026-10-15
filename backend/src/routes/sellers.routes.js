@@ -407,7 +407,8 @@ router.get(
 
 // ---------------------------------------------------------------------------
 // PUT /api/sellers/me/products/:id/inventory
-// Body: { quantity, warehouse_id, variant_id? }
+// Creates a stock adjustment request for admin approval.
+// Body: { quantity, warehouse_id, variant_id?, reason }
 // ---------------------------------------------------------------------------
 router.put(
   '/me/products/:id/inventory',
@@ -416,7 +417,6 @@ router.put(
   async (req, res, next) => {
     try {
       const seller = await getOwnSeller(req.user.id);
-
       const productId = Number(req.params.id);
 
       if (!Number.isSafeInteger(productId) || productId <= 0) {
@@ -426,7 +426,8 @@ router.put(
       const {
         quantity,
         warehouse_id,
-        variant_id = null
+        variant_id = null,
+        reason
       } = req.body;
 
       if (
@@ -449,6 +450,13 @@ router.put(
         throw new ApiError(400, 'Please select a valid warehouse.');
       }
 
+      if (typeof reason !== 'string' || !reason.trim()) {
+        throw new ApiError(
+          400,
+          'Please provide a reason for the stock change.'
+        );
+      }
+
       const warehouseId = Number(warehouse_id);
       let variantId = null;
 
@@ -466,12 +474,16 @@ router.put(
       const product = await db.query(
         `SELECT id
          FROM products
-         WHERE id = $1 AND seller_id = $2`,
+         WHERE id = $1
+           AND seller_id = $2`,
         [productId, seller.id]
       );
 
       if (!product.rows[0]) {
-        throw new ApiError(404, 'Product not found for this seller.');
+        throw new ApiError(
+          404,
+          'Product not found for this seller.'
+        );
       }
 
       const warehouse = await db.query(
@@ -479,14 +491,15 @@ router.put(
          FROM warehouses
          WHERE id = $1
            AND seller_id = $2
-           AND is_active = TRUE`,
+           AND is_active = TRUE
+           AND approval_status = 'approved'`,
         [warehouseId, seller.id]
       );
 
       if (!warehouse.rows[0]) {
         throw new ApiError(
           400,
-          'Selected warehouse is invalid or inactive.'
+          'Warehouse is invalid, inactive, or not approved.'
         );
       }
 
@@ -494,7 +507,8 @@ router.put(
         const variant = await db.query(
           `SELECT id
            FROM product_variants
-           WHERE id = $1 AND product_id = $2`,
+           WHERE id = $1
+             AND product_id = $2`,
           [variantId, productId]
         );
 
@@ -507,21 +521,39 @@ router.put(
       }
 
       const result = await db.query(
-        `INSERT INTO inventory
-           (product_id, variant_id, warehouse_id, quantity)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (product_id, variant_id, warehouse_id)
-         DO UPDATE SET
-           quantity = EXCLUDED.quantity,
-           updated_at = now()
-         RETURNING id, product_id, variant_id, warehouse_id,
-                   quantity, low_stock_threshold, updated_at`,
-        [productId, variantId, warehouseId, Number(quantity)]
+        `INSERT INTO inventory_adjustment_requests (
+           seller_id,
+           product_id,
+           variant_id,
+           warehouse_id,
+           requested_by,
+           requested_quantity,
+           reason
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING
+           id,
+           product_id,
+           variant_id,
+           warehouse_id,
+           requested_quantity,
+           reason,
+           status,
+           created_at`,
+        [
+          seller.id,
+          productId,
+          variantId,
+          warehouseId,
+          req.user.id,
+          Number(quantity),
+          reason.trim()
+        ]
       );
 
-      res.json({
-        message: 'Inventory updated successfully.',
-        inventory: result.rows[0]
+      res.status(201).json({
+        message: 'Stock change request submitted for admin approval.',
+        request: result.rows[0]
       });
     } catch (err) {
       next(err);
