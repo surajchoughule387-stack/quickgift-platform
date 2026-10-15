@@ -1211,15 +1211,17 @@ async function loadWarehouses(){
 
     state.warehouses = data.warehouses || [];
 
-    const activeWarehouses = state.warehouses.filter(
-      warehouse =>
-        warehouse.status === 'approved' &&
-        (
-          warehouse.is_active === true ||
-          warehouse.is_active === 1 ||
-          warehouse.is_active === 'true'
-        )
-    );
+    
+const activeWarehouses = state.warehouses.filter(
+  warehouse =>
+    warehouse.approval_status === 'approved' &&
+    (
+      warehouse.is_active === true ||
+      warehouse.is_active === 1 ||
+      warehouse.is_active === 'true'
+    )
+);
+
 
     const selectedExists = activeWarehouses.some(
       warehouse =>
