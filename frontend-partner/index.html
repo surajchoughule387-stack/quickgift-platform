@@ -2115,53 +2115,64 @@ async function deleteProduct(id){
    UPDATE STOCK
 ========================================================= */
 
+
 async function updateStock(id, quantity){
 
-  const stock =
-    parseInt(quantity,10);
+const stock = parseInt(quantity, 10);
 
-
-  if(
-    !Number.isInteger(stock) ||
-    stock < 0
-  ){
-
-    showToast(
-      'Stock must be 0 or greater.'
-    );
-
-    return;
-  }
-
-
-  try{
-
-    await api(
-      `/sellers/me/products/${id}/inventory`,
-      {
-        method:'PUT',
-
-        body:{
-          quantity:stock
-        }
-      }
-    );
-
-
-    showToast(
-      'Stock updated.'
-    );
-
-  }catch(error){
-
-    showToast(
-      error.message
-    );
-
-    renderProducts('inventory');
-  }
+if(!Number.isInteger(stock) || stock < 0){
+showToast('Stock must be 0 or greater.');
+return;
 }
 
+if(!state.selectedWarehouseId){
+showToast('No approved warehouse available. Please contact admin.');
+return;
+}
+
+const reason = prompt(
+'Why do you need to change this stock?'
+);
+
+if(reason === null){
+return;
+}
+
+const cleanReason = reason.trim();
+
+if(!cleanReason){
+showToast('Please enter a reason for the stock change.');
+return;
+}
+
+try{
+
+await api(
+  `/sellers/me/products/${id}/inventory`,
+  {
+    method:'PUT',
+    body:{
+      quantity: stock,
+      warehouse_id: Number(state.selectedWarehouseId),
+      reason: cleanReason
+    }
+  }
+);
+
+showToast(
+  'Stock change request submitted for admin approval. Live stock is unchanged.'
+);
+
+await loadInventoryRequests();
+
+}catch(error){
+
+showToast(
+  error.message || 'Could not submit stock request.'
+);
+
+}
+}
 
 /* =========================================================
    ORDERS
