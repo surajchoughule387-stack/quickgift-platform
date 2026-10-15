@@ -937,10 +937,12 @@ async function login(){
         .getElementById('shell')
         .style.display = 'flex';
 
+await loadCategories();
+await loadWarehouses();
+await loadInventoryRequests();
 
-      await loadCategories();
-
-      showView('dashboard');
+showView('dashboard');
+      
 
       return;
     }
@@ -1195,6 +1197,81 @@ async function loadCategories(){
   }
 }
 
+
+/* =========================================================
+   LOAD SELLER WAREHOUSES
+========================================================= */
+
+async function loadWarehouses(){
+
+  try{
+
+    const data = await api('/sellers/me/warehouses');
+
+    state.warehouses = data.warehouses || [];
+
+    const activeWarehouses = state.warehouses.filter(
+      warehouse =>
+        warehouse.status === 'approved' &&
+        (
+          warehouse.is_active === true ||
+          warehouse.is_active === 1 ||
+          warehouse.is_active === 'true'
+        )
+    );
+
+    const selectedExists = activeWarehouses.some(
+      warehouse =>
+        String(warehouse.id) ===
+        String(state.selectedWarehouseId)
+    );
+
+    if(!selectedExists){
+      state.selectedWarehouseId =
+        activeWarehouses.length
+          ? String(activeWarehouses[0].id)
+          : '';
+    }
+
+  }catch(error){
+
+    state.warehouses = [];
+    state.selectedWarehouseId = '';
+
+    showToast(
+      'Could not load warehouses: ' + error.message
+    );
+
+  }
+}
+
+
+/* =========================================================
+   LOAD INVENTORY REQUEST HISTORY
+========================================================= */
+
+async function loadInventoryRequests(){
+
+  try{
+
+    const data = await api(
+      '/sellers/me/inventory-adjustment-requests'
+    );
+
+    state.inventoryRequests =
+      data.requests || [];
+
+  }catch(error){
+
+    state.inventoryRequests = [];
+
+    showToast(
+      'Could not load stock requests: ' + error.message
+    );
+
+  }
+}
+  
 
 /* =========================================================
    VIEW ROUTING
