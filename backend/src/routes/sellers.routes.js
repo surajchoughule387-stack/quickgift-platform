@@ -140,7 +140,7 @@ router.get(
 
 
       const { rows } = await db.query(
-        `SELECT
+        SELECT
            id,
            name,
            address,
