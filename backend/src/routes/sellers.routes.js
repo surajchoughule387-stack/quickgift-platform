@@ -136,8 +136,15 @@ router.get(
       const seller = await getOwnSeller(req.user.id);
 
       const { rows } = await db.query(
-        `SELECT id, name, address, country_id, is_active
-         FROM warehouses
+SELECT
+  id,
+  name,
+  address,
+  country_id,
+  is_active,
+  approval_status
+FROM warehouses
+         
          WHERE seller_id = $1
            AND is_active = TRUE
          ORDER BY id DESC`,
@@ -180,7 +187,17 @@ router.post(
         `INSERT INTO warehouses
            (seller_id, name, address, country_id, is_active)
          VALUES ($1, $2, $3, $4, TRUE)
-         RETURNING id, seller_id, name, address, country_id, is_active`,
+         
+RETURNING
+  id,
+  seller_id,
+  name,
+  address,
+  country_id,
+  is_active,
+  approval_status
+
+         
         [
           seller.id,
           name.trim(),
@@ -190,7 +207,10 @@ router.post(
       );
 
       res.status(201).json({
-        message: 'Warehouse created successfully.',
+        
+
+message: 'Warehouse submitted for admin approval.',
+        
         warehouse: rows[0]
       });
     } catch (err) {
