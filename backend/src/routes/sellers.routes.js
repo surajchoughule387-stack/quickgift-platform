@@ -125,6 +125,80 @@ async function getOwnSeller(userId) {
   return rows[0];
 }
 
+
+// GET /api/sellers/me/warehouses
+router.get(
+  '/me/warehouses',
+  authenticate,
+  requireRole('seller'),
+  async (req, res, next) => {
+    try {
+      const seller = await getOwnSeller(req.user.id);
+
+      const { rows } = await db.query(
+        `SELECT id, name, address, country_id, is_active
+         FROM warehouses
+         WHERE seller_id = $1
+           AND is_active = TRUE
+         ORDER BY id DESC`,
+        [seller.id]
+      );
+
+      res.json({ warehouses: rows });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// POST /api/sellers/me/warehouses
+router.post(
+  '/me/warehouses',
+  authenticate,
+  requireRole('seller'),
+  async (req, res, next) => {
+    try {
+      const seller = await getOwnSeller(req.user.id);
+      const { name, address, country_id } = req.body;
+
+      if (typeof name !== 'string' || !name.trim()) {
+        throw new ApiError(400, 'Warehouse name is required.');
+      }
+
+      let countryId = null;
+
+      if (country_id !== undefined && country_id !== null &&
+          country_id !== '') {
+        countryId = Number(country_id);
+
+        if (!Number.isSafeInteger(countryId) || countryId <= 0) {
+          throw new ApiError(400, 'Invalid country_id.');
+        }
+      }
+
+      const { rows } = await db.query(
+        `INSERT INTO warehouses
+           (seller_id, name, address, country_id, is_active)
+         VALUES ($1, $2, $3, $4, TRUE)
+         RETURNING id, seller_id, name, address, country_id, is_active`,
+        [
+          seller.id,
+          name.trim(),
+          typeof address === 'string' ? address.trim() || null : null,
+          countryId
+        ]
+      );
+
+      res.status(201).json({
+        message: 'Warehouse created successfully.',
+        warehouse: rows[0]
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // ---------------------------------------------------------------------------
 // GET /api/sellers/me
 // ---------------------------------------------------------------------------
@@ -335,6 +409,9 @@ router.get(
 // PUT /api/sellers/me/products/:id/inventory
 // { quantity, warehouse_id?, variant_id? }
 // ---------------------------------------------------------------------------
+
+// PUT /api/sellers/me/products/:id/inventory
+// Body: { quantity, warehouse_id, variant_id? }
 router.put(
   '/me/products/:id/inventory',
   authenticate,
@@ -343,71 +420,112 @@ router.put(
     try {
       const seller = await getOwnSeller(req.user.id);
 
+      const productId = Number(req.params.id);
+
+      if (!Number.isSafeInteger(productId) || productId <= 0) {
+        throw new ApiError(400, 'Invalid product ID.');
+      }
+
+      const { quantity, warehouse_id, variant_id = null } = req.body;
+
+      if (
+        quantity === undefined ||
+        !/^(0|[1-9]\d*)$/.test(String(quantity)) ||
+        !Number.isSafeInteger(Number(quantity))
+      ) {
+        throw new ApiError(
+          400,
+          'Quantity must be a non-negative integer.'
+        );
+      }
+
+      const warehouseId = Number(warehouse_id);
+
+      if (
+        warehouse_id === undefined ||
+        warehouse_id === null ||
+        !Number.isSafeInteger(warehouseId) ||
+        warehouseId <= 0
+      ) {
+        throw new ApiError(400, 'Please select a valid warehouse.');
+      }
+
+      let variantId = null;
+
+      if (variant_id !== undefined && variant_id !== null &&
+          variant_id !== '') {
+        variantId = Number(variant_id);
+
+        if (!Number.isSafeInteger(variantId) || variantId <= 0) {
+          throw new ApiError(400, 'Invalid variant ID.');
+        }
+      }
+
       const product = await db.query(
         `SELECT id
          FROM products
-         WHERE id = $1
-           AND seller_id = $2`,
-        [req.params.id, seller.id]
+         WHERE id = $1 AND seller_id = $2`,
+        [productId, seller.id]
       );
 
       if (!product.rows[0]) {
         throw new ApiError(404, 'Product not found for this seller.');
       }
 
-      const {
-        quantity,
-        warehouse_id = null,
-        variant_id = null
-      } = req.body;
-
-      const existing = await db.query(
+      const warehouse = await db.query(
         `SELECT id
-         FROM inventory
-         WHERE product_id = $1
-           AND (
-             variant_id = $2
-             OR ($2::int IS NULL AND variant_id IS NULL)
-           )`,
-        [req.params.id, variant_id]
+         FROM warehouses
+         WHERE id = $1
+           AND seller_id = $2
+           AND is_active = TRUE`,
+        [warehouseId, seller.id]
       );
 
-      if (existing.rows[0]) {
-        await db.query(
-          `UPDATE inventory
-           SET quantity = $1,
-               warehouse_id = $2,
-               updated_at = now()
-           WHERE id = $3`,
-          [
-            quantity,
-            warehouse_id,
-            existing.rows[0].id
-          ]
-        );
-      } else {
-        await db.query(
-          `INSERT INTO inventory
-           (product_id, variant_id, warehouse_id, quantity)
-           VALUES ($1,$2,$3,$4)`,
-          [
-            req.params.id,
-            variant_id,
-            warehouse_id,
-            quantity
-          ]
+      if (!warehouse.rows[0]) {
+        throw new ApiError(
+          400,
+          'Selected warehouse is invalid or inactive.'
         );
       }
 
+      if (variantId !== null) {
+        const variant = await db.query(
+          `SELECT id
+           FROM product_variants
+           WHERE id = $1 AND product_id = $2`,
+          [variantId, productId]
+        );
+
+        if (!variant.rows[0]) {
+          throw new ApiError(
+            400,
+            'Selected variant does not belong to this product.'
+          );
+        }
+      }
+
+      const result = await db.query(
+        `INSERT INTO inventory
+           (product_id, variant_id, warehouse_id, quantity)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (product_id, variant_id, warehouse_id)
+         DO UPDATE SET
+           quantity = EXCLUDED.quantity,
+           updated_at = now()
+         RETURNING id, product_id, variant_id, warehouse_id,
+                   quantity, low_stock_threshold, updated_at`,
+        [productId, variantId, warehouseId, Number(quantity)]
+      );
+
       res.json({
-        message: 'Inventory updated.'
+        message: 'Inventory updated successfully.',
+        inventory: result.rows[0]
       });
     } catch (err) {
       next(err);
     }
   }
 );
-
 // ---------------------------------------------------------------------------
 // GET /api/sellers/me/orders — order items belonging to this seller
 // ---------------------------------------------------------------------------
