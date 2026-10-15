@@ -1868,6 +1868,164 @@ function openProductModal(){
    SUBMIT PRODUCT
 ========================================================= */
 
+
+
+
+async function submitProduct(){
+
+  try{
+
+    const name =
+      document.getElementById('pName').value.trim();
+
+    const categoryId =
+      parseInt(document.getElementById('pCategory').value, 10);
+
+    const description =
+      document.getElementById('pDescription').value.trim();
+
+    const basePrice =
+      parseFloat(document.getElementById('pPrice').value);
+
+    const mrpValue =
+      document.getElementById('pMrp').value;
+
+    const mrp = mrpValue ? parseFloat(mrpValue) : null;
+
+    const stock =
+      parseInt(document.getElementById('pStock').value, 10);
+
+    if(!name){
+      showToast('Please enter product name.');
+      return;
+    }
+
+    if(!Number.isInteger(categoryId) || categoryId <= 0){
+      showToast('Please select a valid category.');
+      return;
+    }
+
+    if(!Number.isFinite(basePrice) || basePrice <= 0){
+      showToast('Please enter a valid product price.');
+      return;
+    }
+
+    if(
+      mrp !== null &&
+      (!Number.isFinite(mrp) || mrp <= 0)
+    ){
+      showToast('Please enter a valid MRP.');
+      return;
+    }
+
+    if(mrp !== null && mrp < basePrice){
+      showToast('MRP should be equal to or greater than the base price.');
+      return;
+    }
+
+    if(!Number.isInteger(stock) || stock < 0){
+      showToast('Please enter valid stock quantity.');
+      return;
+    }
+
+    const result = await api('/products', {
+      method: 'POST',
+      body: {
+        name,
+        category_id: categoryId,
+        description,
+        base_price: basePrice,
+        mrp
+      }
+    });
+
+    let successMessage =
+      'Product submitted for admin approval.';
+
+    if(stock > 0){
+
+      if(!result || !result.product || !result.product.id){
+
+        successMessage =
+          'Product created, but its ID was not returned. Initial stock request was not submitted.';
+
+      }else if(!state.selectedWarehouseId){
+
+        successMessage =
+          'Product created, but no approved warehouse is available. Initial stock was not submitted.';
+
+      }else{
+
+        const reason = prompt(
+          'Why are you adding initial stock for this product?'
+        );
+
+        if(reason === null){
+
+          successMessage =
+            'Product created. Initial stock request was cancelled. Stock has not been changed.';
+
+        }else if(!reason.trim()){
+
+          successMessage =
+            'Product created. A reason is required; initial stock request was not submitted.';
+
+        }else{
+
+          try{
+
+            await api(
+              `/sellers/me/products/${result.product.id}/inventory`,
+              {
+                method: 'PUT',
+                body: {
+                  quantity: stock,
+                  warehouse_id: Number(state.selectedWarehouseId),
+                  reason: reason.trim()
+                }
+              }
+            );
+
+            successMessage =
+              'Product created. Initial stock request submitted for admin approval.';
+
+            await loadInventoryRequests();
+
+          }catch(stockError){
+
+            successMessage =
+              'Product created, but stock request failed: ' +
+              stockError.message;
+
+          }
+
+        }
+
+      }
+
+    }
+
+    document
+      .getElementById('productModalBg')
+      .classList.remove('show');
+
+    showToast(successMessage);
+
+    renderProducts();
+
+  }catch(error){
+
+    showToast(
+      error.message || 'Could not create product.'
+    );
+
+  }
+
+}
+
+
+  
+
 async function submitProduct(){
 
   try{
