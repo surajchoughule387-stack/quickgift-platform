@@ -737,13 +737,16 @@ const API_BASE =
   window.QUICKGIFT_API_BASE ||
   'http://localhost:4000/api';
 
-
 let state = {
   token: null,
   user: null,
   seller: null,
-  categories: []
+  categories: [],
+  warehouses: [],
+  selectedWarehouseId: '',
+  inventoryRequests: []
 };
+
 
 
 /* =========================================================
