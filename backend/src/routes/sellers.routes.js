@@ -136,7 +136,7 @@ router.get(
       const seller = await getOwnSeller(req.user.id);
 
     
-      const { rows } = await db.query(
+      const { rows } = await db.query('
         `SELECT
            id,
            name,
