@@ -2,6 +2,7 @@
 -- Warehouse approval and stock adjustment request workflow.
 -- Existing warehouses remain approved; new warehouses default to pending.
 
+
 BEGIN;
 
 ALTER TABLE warehouses
