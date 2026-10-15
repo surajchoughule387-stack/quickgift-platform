@@ -4,7 +4,6 @@
 
 const crypto = require('crypto');
 
-const activeProviderName = process.env.PAYMENT_PROVIDER || 'mock';
 
 const mockProvider = {
   name: 'mock',
@@ -209,6 +208,28 @@ const providers = {
   razorpay: razorpayProvider
 };
 
-module.exports =
-  providers[activeProviderName] ||
-  mockProvider;
+
+const activeProviderName = process.env.PAYMENT_PROVIDER;
+
+if (
+  !activeProviderName ||
+  !Object.prototype.hasOwnProperty.call(
+    providers,
+    activeProviderName
+  )
+) {
+  throw new Error(
+    'PAYMENT_PROVIDER must explicitly be set to a supported provider.'
+  );
+}
+
+if (
+  process.env.NODE_ENV === 'production' &&
+  activeProviderName === 'mock'
+) {
+  throw new Error(
+    'Mock payment provider is not allowed in production.'
+  );
+}
+
+module.exports = providers[activeProviderName];
