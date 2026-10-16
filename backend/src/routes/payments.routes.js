@@ -374,6 +374,35 @@ router.post(
         amount = payment.rows[0].amount,
         reason = ''
       } = req.body;
+      const refundAmount = Number(amount);
+
+if (
+  !Number.isFinite(refundAmount) ||
+  refundAmount <= 0 ||
+  refundAmount > Number(payment.rows[0].amount)
+) {
+  throw new ApiError(400, 'Invalid refund amount.');
+}
+
+const refundedTotal = await db.query(
+  `SELECT COALESCE(SUM(amount), 0) AS total
+   FROM transactions
+   WHERE payment_id = $1
+     AND type = 'refund'
+     AND status = 'refunded'`,
+  [payment.rows[0].id]
+);
+
+const remainingAmount =
+  Number(payment.rows[0].amount) -
+  Number(refundedTotal.rows[0].total);
+
+if (refundAmount > remainingAmount) {
+  throw new ApiError(
+    400,
+    'Refund amount exceeds the remaining refundable amount.'
+  );
+}
 
       const providerResult =
         await paymentProvider.refund({
