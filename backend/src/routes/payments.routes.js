@@ -71,20 +71,21 @@ router.post('/webhook', async (req, res, next) => {
       );
     }
 
-    // First find payment using Razorpay ORDER ID.
+
+        // Find payment using Razorpay ORDER ID.
     let paymentRes;
 
     if (providerOrderId) {
       paymentRes = await db.query(
         `SELECT * FROM payments
-         WHERE provider_payment_id = $1
+         WHERE provider = $1
+           AND provider_order_id = $2
          ORDER BY created_at DESC
          LIMIT 1`,
-        [providerOrderId]
+        ['razorpay', providerOrderId]
       );
     }
 
-  
     // Fallback: find using Razorpay PAYMENT ID.
     if (!paymentRes?.rows[0]) {
       paymentRes = await db.query(
@@ -98,6 +99,13 @@ router.post('/webhook', async (req, res, next) => {
     }
 
     const payment = paymentRes.rows[0];
+
+    if (!payment) {
+      throw new ApiError(
+        404,
+        'Payment record not found for this webhook event.'
+      );
+    }
     
     // Prevent duplicate webhook processing.
     if (
