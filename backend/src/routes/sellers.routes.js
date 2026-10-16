@@ -183,21 +183,19 @@ router.post(
         }
       }
 
-      const { rows } = await db.query(
+    
+const { rows } = await db.query(
         `INSERT INTO warehouses
            (seller_id, name, address, country_id, is_active)
          VALUES ($1, $2, $3, $4, TRUE)
-         
-RETURNING
-  id,
-  seller_id,
-  name,
-  address,
-  country_id,
-  is_active,
-  approval_status
-
-         
+         RETURNING
+           id,
+           seller_id,
+           name,
+           address,
+           country_id,
+           is_active,
+           approval_status`,
         [
           seller.id,
           name.trim(),
@@ -205,6 +203,7 @@ RETURNING
           countryId
         ]
       );
+
 
       res.status(201).json({
         
