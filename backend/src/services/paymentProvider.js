@@ -1,3 +1,6 @@
+
+'use strict';
+
 // ---------------------------------------------------------------------------
 // Payment abstraction layer
 // ---------------------------------------------------------------------------
@@ -5,6 +8,10 @@
 const crypto = require('crypto');
 
 const activeProviderName = process.env.PAYMENT_PROVIDER || 'mock';
+
+// ---------------------------------------------------------------------------
+// Mock provider — development/testing only
+// ---------------------------------------------------------------------------
 
 const mockProvider = {
   name: 'mock',
@@ -19,60 +26,61 @@ const mockProvider = {
     };
   },
 
-  
-    verifyWebhookSignature() {
-  if (process.env.NODE_ENV === 'production') {
-    return false;
-  }
+  verifyWebhookSignature() {
+    // Never trust mock webhooks in production.
+    return process.env.NODE_ENV !== 'production';
+  },
 
-  return true;
-},
-  
-    parseWebhookEvent(rawBody) {
+  parseWebhookEvent(rawBody) {
     const body = JSON.parse(rawBody.toString('utf8'));
 
-    const paymentEntity = body.payload?.payment?.entity;
-    const refundEntity = body.payload?.refund?.entity;
-
-    const statusMap = {
-      'payment.captured': 'captured',
-      'payment.failed': 'failed',
-      'refund.processed': 'refunded'
-    };
-
     return {
-      providerOrderId:
-        paymentEntity?.order_id || null,
-
-      providerPaymentId:
-        paymentEntity?.id ||
-        refundEntity?.payment_id ||
-        null,
-
-      providerRefundId:
-        refundEntity?.id || null,
-
+      providerOrderId: body.providerOrderId || null,
+      providerPaymentId: body.providerPaymentId || null,
+      providerRefundId: body.providerRefundId || null,
       refundAmount:
-        refundEntity?.amount != null
-          ? refundEntity.amount / 100
+        Number.isFinite(body.refundAmount) &&
+        body.refundAmount >= 0
+          ? body.refundAmount
           : null,
-
-      status: statusMap[body.event] || null,
+      status: body.status || null,
       event: body.event || null
     };
   },
 
+  async refund({ providerPaymentId, amount }) {
+    if (
+      typeof providerPaymentId !== 'string' ||
+      !providerPaymentId.trim() ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      throw new Error('Invalid payment ID or refund amount.');
+    }
+
+    return {
+      status: 'refunded',
+      providerPaymentId,
+      providerRefundId: `mock_refund_${crypto.randomUUID()}`,
+      amount
+    };
+  }
+};
+
 // ---------------------------------------------------------------------------
-// Razorpay
+// Razorpay provider
 // ---------------------------------------------------------------------------
 
 const razorpayProvider = {
   name: 'razorpay',
 
   _authHeader() {
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    if (
+      !process.env.RAZORPAY_KEY_ID ||
+      !process.env.RAZORPAY_KEY_SECRET
+    ) {
       throw new Error(
-        'RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set in .env to use PAYMENT_PROVIDER=razorpay'
+        'RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set.'
       );
     }
 
@@ -89,6 +97,10 @@ const razorpayProvider = {
   },
 
   async createPaymentIntent({ amount, currency, orderId }) {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Invalid payment amount.');
+    }
+
     const res = await fetch(
       'https://api.razorpay.com/v1/orders',
       {
@@ -109,15 +121,18 @@ const razorpayProvider = {
 
     if (!res.ok) {
       throw new Error(
-        data.error?.description || 'Razorpay order creation failed'
+        data.error?.description ||
+        'Razorpay order creation failed.'
       );
     }
 
-    // This is Razorpay ORDER ID.
-    // Actual PAYMENT ID comes later through the verified webhook.
+    // Backward compatibility:
+    // Existing checkout code reads providerPaymentId.
+    // For order creation, this value is the ORDER ID, not a payment ID.
     return {
       provider: 'razorpay',
       providerPaymentId: data.id,
+      providerOrderId: data.id,
       amount,
       currency,
       razorpayKeyId: process.env.RAZORPAY_KEY_ID
@@ -125,48 +140,36 @@ const razorpayProvider = {
   },
 
   verifyWebhookSignature(rawBody, signatureHeader) {
-    if (!process.env.RAZORPAY_WEBHOOK_SECRET) {
-      console.error(
-        'RAZORPAY_WEBHOOK_SECRET is not set — refusing to trust an unverifiable webhook.'
-      );
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
+    if (
+      !secret ||
+      !Buffer.isBuffer(rawBody) ||
+      typeof signatureHeader !== 'string' ||
+      !/^[a-f0-9]{64}$/i.test(signatureHeader)
+    ) {
       return false;
     }
 
     const expected = crypto
-      .createHmac(
-        'sha256',
-        process.env.RAZORPAY_WEBHOOK_SECRET
-      )
+      .createHmac('sha256', secret)
       .update(rawBody)
-      .digest('hex');
+      .digest();
 
-    try {
-      return crypto.timingSafeEqual(
-        Buffer.from(expected),
-        Buffer.from(signatureHeader || '')
-      );
-    } catch {
+    const received = Buffer.from(signatureHeader, 'hex');
+
+    if (received.length !== expected.length) {
       return false;
     }
+
+    return crypto.timingSafeEqual(expected, received);
   },
 
-  // Keep both Razorpay IDs:
-  // providerOrderId   = order_xxx
-  // providerPaymentId = pay_xxx
   parseWebhookEvent(rawBody) {
-    const body = JSON.parse(
-      rawBody.toString('utf8')
-    );
+    const body = JSON.parse(rawBody.toString('utf8'));
 
-    const paymentEntity =
-      body.payload?.payment?.entity;
-
-    const refundEntity =
-      body.payload?.refund?.entity;
-
-    const entity =
-      paymentEntity || refundEntity;
+    const paymentEntity = body.payload?.payment?.entity;
+    const refundEntity = body.payload?.refund?.entity;
 
     const statusMap = {
       'payment.captured': 'captured',
@@ -175,30 +178,42 @@ const razorpayProvider = {
     };
 
     return {
-      providerOrderId:
-        paymentEntity?.order_id || null,
+      providerOrderId: paymentEntity?.order_id || null,
 
       providerPaymentId:
         paymentEntity?.id ||
         refundEntity?.payment_id ||
         null,
 
-      status:
-        statusMap[body.event] ||
-        entity?.status ||
-        null,
+      providerRefundId: refundEntity?.id || null,
 
-      event:
-        body.event || null
+      // Razorpay amounts are in the smallest currency unit.
+      // Convert to major units for compatibility with existing routes.
+      refundAmount:
+        Number.isFinite(refundEntity?.amount) &&
+        refundEntity.amount >= 0
+          ? refundEntity.amount / 100
+          : null,
+
+      // Ignore unsupported event types instead of trusting arbitrary status.
+      status: statusMap[body.event] || null,
+
+      event: body.event || null
     };
   },
 
-  async refund({
-    providerPaymentId,
-    amount
-  }) {
+  async refund({ providerPaymentId, amount }) {
+    if (
+      typeof providerPaymentId !== 'string' ||
+      !providerPaymentId.trim() ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      throw new Error('Invalid payment ID or refund amount.');
+    }
+
     const res = await fetch(
-      `https://api.razorpay.com/v1/payments/${providerPaymentId}/refund`,
+      `https://api.razorpay.com/v1/payments/${encodeURIComponent(providerPaymentId)}/refund`,
       {
         method: 'POST',
         headers: this._authHeader(),
@@ -213,23 +228,44 @@ const razorpayProvider = {
     if (!res.ok) {
       throw new Error(
         data.error?.description ||
-        'Razorpay refund failed'
+        'Razorpay refund failed.'
       );
     }
 
     return {
-      status: 'refunded',
-      providerPaymentId: data.id,
-      amount
+      status: data.status || 'pending',
+      providerPaymentId: data.payment_id || providerPaymentId,
+      providerRefundId: data.id || null,
+      amount:
+        Number.isFinite(data.amount)
+          ? data.amount / 100
+          : amount
     };
   }
 };
+
+// ---------------------------------------------------------------------------
+// Provider selection
+// ---------------------------------------------------------------------------
 
 const providers = {
   mock: mockProvider,
   razorpay: razorpayProvider
 };
 
-module.exports =
-  providers[activeProviderName] ||
-  mockProvider;
+if (!Object.prototype.hasOwnProperty.call(providers, activeProviderName)) {
+  throw new Error(
+    `Unsupported PAYMENT_PROVIDER: ${activeProviderName}`
+  );
+}
+
+if (
+  process.env.NODE_ENV === 'production' &&
+  activeProviderName === 'mock'
+) {
+  throw new Error(
+    'Mock payments are disabled in production. Configure Razorpay.'
+  );
+}
+
+module.exports = providers[activeProviderName];
