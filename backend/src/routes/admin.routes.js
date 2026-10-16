@@ -344,5 +344,312 @@ const { rows } = await db.query(
   }
 );
 
+/* STOCK REQUEST APPROVAL */
+
+// List stock requests for admin review.
+// GET /api/admin/stock-requests?status=pending
+router.get(
+  '/stock-requests',
+  authenticate,
+  requireRole(...ADMIN_ROLES),
+  async (req, res, next) => {
+    try {
+      const status = req.query.status || 'pending';
+      const allowed = ['pending', 'approved', 'rejected', 'all'];
+
+      if (!allowed.includes(status)) {
+        throw new ApiError(400, 'Invalid stock request status.');
+      }
+
+      const values = [];
+      let filter = '';
+
+      if (status !== 'all') {
+        values.push(status);
+        filter = 'WHERE iar.status = $1';
+      }
+
+      const { rows } = await db.query(
+        `SELECT
+           iar.id,
+           iar.seller_id,
+           iar.product_id,
+           iar.variant_id,
+           iar.warehouse_id,
+           iar.requested_by,
+           iar.requested_quantity,
+           iar.reason,
+           iar.status,
+           iar.reviewed_by,
+           iar.reviewed_at,
+           iar.admin_note,
+           iar.created_at,
+           s.business_name,
+           p.name AS product_name,
+           w.name AS warehouse_name
+         FROM inventory_adjustment_requests iar
+         JOIN sellers s ON s.id = iar.seller_id
+         JOIN products p ON p.id = iar.product_id
+         JOIN warehouses w ON w.id = iar.warehouse_id
+         ${filter}
+         ORDER BY iar.created_at DESC
+         LIMIT 200`,
+        values
+      );
+
+      res.json({ requests: rows });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Approve request and update inventory atomically.
+// requested_quantity is the final stock quantity, not an increment.
+router.patch(
+  '/stock-requests/:id/approve',
+  authenticate,
+  requireRole(...ADMIN_ROLES),
+  async (req, res, next) => {
+    let client;
+
+    try {
+      const id = Number(req.params.id);
+
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        throw new ApiError(400, 'Invalid stock request ID.');
+      }
+
+      const adminNote =
+        typeof req.body.admin_note === 'string'
+          ? req.body.admin_note.trim() || null
+          : null;
+
+      client = await db.getClient();
+      await client.query('BEGIN');
+
+      const requestResult = await client.query(
+        `SELECT *
+         FROM inventory_adjustment_requests
+         WHERE id = $1
+         FOR UPDATE`,
+        [id]
+      );
+
+      const request = requestResult.rows[0];
+
+      if (!request) {
+        throw new ApiError(404, 'Stock request not found.');
+      }
+
+      if (request.status !== 'pending') {
+        throw new ApiError(409, 'Stock request has already been reviewed.');
+      }
+
+      const productResult = await client.query(
+        `SELECT id
+         FROM products
+         WHERE id = $1
+           AND seller_id = $2`,
+        [request.product_id, request.seller_id]
+      );
+
+      if (!productResult.rows[0]) {
+        throw new ApiError(
+          409,
+          'Product does not belong to the requesting seller.'
+        );
+      }
+
+      const warehouseResult = await client.query(
+        `SELECT id
+         FROM warehouses
+         WHERE id = $1
+           AND seller_id = $2
+           AND is_active = TRUE
+           AND approval_status = 'approved'
+         FOR UPDATE`,
+        [request.warehouse_id, request.seller_id]
+      );
+
+      if (!warehouseResult.rows[0]) {
+        throw new ApiError(
+          409,
+          'Warehouse is not active and approved for this seller.'
+        );
+      }
+
+      if (request.variant_id !== null) {
+        const variantResult = await client.query(
+          `SELECT id
+           FROM product_variants
+           WHERE id = $1
+             AND product_id = $2`,
+          [request.variant_id, request.product_id]
+        );
+
+        if (!variantResult.rows[0]) {
+          throw new ApiError(
+            409,
+            'Requested variant does not belong to this product.'
+          );
+        }
+
+        await client.query(
+          `INSERT INTO inventory
+             (product_id, variant_id, warehouse_id, quantity)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (product_id, variant_id, warehouse_id)
+           WHERE variant_id IS NOT NULL
+             AND product_id IS NOT NULL
+             AND warehouse_id IS NOT NULL
+           DO UPDATE SET
+             quantity = EXCLUDED.quantity,
+             updated_at = now()`,
+          [
+            request.product_id,
+            request.variant_id,
+            request.warehouse_id,
+            request.requested_quantity
+          ]
+        );
+      } else {
+        await client.query(
+          `INSERT INTO inventory
+             (product_id, variant_id, warehouse_id, quantity)
+           VALUES ($1, NULL, $2, $3)
+           ON CONFLICT (product_id, warehouse_id)
+           WHERE variant_id IS NULL
+             AND product_id IS NOT NULL
+             AND warehouse_id IS NOT NULL
+           DO UPDATE SET
+             quantity = EXCLUDED.quantity,
+             updated_at = now()`,
+          [
+            request.product_id,
+            request.warehouse_id,
+            request.requested_quantity
+          ]
+        );
+      }
+
+      const updated = await client.query(
+        `UPDATE inventory_adjustment_requests
+         SET status = 'approved',
+             reviewed_by = $1,
+             reviewed_at = now(),
+             admin_note = $2,
+             updated_at = now()
+         WHERE id = $3
+           AND status = 'pending'
+         RETURNING *`,
+        [req.user.id, adminNote, id]
+      );
+
+      if (!updated.rows[0]) {
+        throw new ApiError(409, 'Stock request was already reviewed.');
+      }
+
+      await client.query('COMMIT');
+
+      res.json({
+        message: 'Stock request approved and inventory updated.',
+        request: updated.rows[0]
+      });
+    } catch (err) {
+      if (client) {
+        try {
+          await client.query('ROLLBACK');
+        } catch (rollbackErr) {
+          console.error('Stock approval rollback failed:', rollbackErr);
+        }
+      }
+
+      next(err);
+    } finally {
+      if (client) client.release();
+    }
+  }
+);
+
+// Reject request without changing inventory.
+// PATCH /api/admin/stock-requests/:id/reject
+router.patch(
+  '/stock-requests/:id/reject',
+  authenticate,
+  requireRole(...ADMIN_ROLES),
+  async (req, res, next) => {
+    let client;
+
+    try {
+      const id = Number(req.params.id);
+
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        throw new ApiError(400, 'Invalid stock request ID.');
+      }
+
+      const adminNote =
+        typeof req.body.admin_note === 'string'
+          ? req.body.admin_note.trim() || null
+          : null;
+
+      client = await db.getClient();
+      await client.query('BEGIN');
+
+      const requestResult = await client.query(
+        `SELECT id, status
+         FROM inventory_adjustment_requests
+         WHERE id = $1
+         FOR UPDATE`,
+        [id]
+      );
+
+      const request = requestResult.rows[0];
+
+      if (!request) {
+        throw new ApiError(404, 'Stock request not found.');
+      }
+
+      if (request.status !== 'pending') {
+        throw new ApiError(409, 'Stock request has already been reviewed.');
+      }
+
+      const { rows } = await client.query(
+        `UPDATE inventory_adjustment_requests
+         SET status = 'rejected',
+             reviewed_by = $1,
+             reviewed_at = now(),
+             admin_note = $2,
+             updated_at = now()
+         WHERE id = $3
+           AND status = 'pending'
+         RETURNING *`,
+        [req.user.id, adminNote, id]
+      );
+
+      await client.query('COMMIT');
+
+      res.json({
+        message: 'Stock request rejected. Inventory was not changed.',
+        request: rows[0]
+      });
+    } catch (err) {
+      if (client) {
+        try {
+          await client.query('ROLLBACK');
+        } catch (rollbackErr) {
+          console.error('Stock rejection rollback failed:', rollbackErr);
+        }
+      }
+
+      next(err);
+    } finally {
+      if (client) client.release();
+    }
+  }
+);
+
+
+
 
 module.exports = router;
