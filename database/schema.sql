@@ -312,11 +312,12 @@ CREATE TABLE order_items (
 CREATE TABLE payments (
   id SERIAL PRIMARY KEY,
   order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
-  provider TEXT NOT NULL,          -- razorpay, stripe, mock...
+  provider TEXT NOT NULL,     -- razorpay, stripe, mock...
+  provider_order_id TEXT,
   provider_payment_id TEXT,
   amount NUMERIC(12,2) NOT NULL,
   currency_code TEXT NOT NULL,
-  status TEXT DEFAULT 'created',   -- created, authorized, captured, failed, refunded
+  status TEXT DEFAULT 'created',-- created, authorized, captured, failed, partially_refunded, refunded
   method TEXT,                     -- card, upi, wallet, netbanking, cod
   webhook_verified BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT now()
