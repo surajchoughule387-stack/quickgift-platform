@@ -12,6 +12,7 @@ admin app    ─┘         │
                          └── notifications: in-app always real; email (Resend) + SMS (Twilio) real once you add keys
 ```
 
+
 ## What's real right now
 
 | Feature | Status |
@@ -31,7 +32,7 @@ change, no code changes, no reinstall.
 
 ### 1. Database
 1. Database
-
+```bash
 Run locally:
 
 createdb quickgift
