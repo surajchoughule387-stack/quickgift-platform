@@ -224,4 +224,115 @@ router.put('/settings/:key', authenticate, requireRole('admin', 'super_admin'), 
   } catch (err) { next(err); }
 });
 
+
+/* WAREHOUSE APPROVAL */
+
+router.get(
+  '/warehouses',
+  authenticate,
+  requireRole(...ADMIN_ROLES),
+  async (req, res, next) => {
+    try {
+      const { status = 'pending' } = req.query;
+      const allowed = ['pending', 'approved', 'rejected', 'all'];
+
+      if (!allowed.includes(status)) {
+        throw new ApiError(400, 'Invalid warehouse status.');
+      }
+
+      const values = [];
+      let filter = '';
+
+      if (status !== 'all') {
+        values.push(status);
+        filter = 'WHERE w.approval_status = $1';
+      }
+
+      const { rows } = await db.query(
+        `SELECT w.*, s.business_name
+         FROM warehouses w
+         LEFT JOIN sellers s ON s.id = w.seller_id
+         ${filter}
+         ORDER BY w.id DESC`,
+        values
+      );
+
+      res.json({ warehouses: rows });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.patch(
+  '/warehouses/:id/approve',
+  authenticate,
+  requireRole(...ADMIN_ROLES),
+  async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        throw new ApiError(400, 'Invalid warehouse ID.');
+      }
+
+      const { rows } = await db.query(
+        `UPDATE warehouses
+         SET approval_status = 'approved',
+             is_active = TRUE
+         WHERE id = $1
+         RETURNING *`,
+        [id]
+      );
+
+      if (!rows[0]) {
+        throw new ApiError(404, 'Warehouse not found.');
+      }
+
+      res.json({
+        message: 'Warehouse approved.',
+        warehouse: rows[0]
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.patch(
+  '/warehouses/:id/reject',
+  authenticate,
+  requireRole(...ADMIN_ROLES),
+  async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        throw new ApiError(400, 'Invalid warehouse ID.');
+      }
+
+      const { rows } = await db.query(
+        `UPDATE warehouses
+         SET approval_status = 'rejected',
+             is_active = FALSE
+         WHERE id = $1
+         RETURNING *`,
+        [id]
+      );
+
+      if (!rows[0]) {
+        throw new ApiError(404, 'Warehouse not found.');
+      }
+
+      res.json({
+        message: 'Warehouse rejected.',
+        warehouse: rows[0]
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+
 module.exports = router;
