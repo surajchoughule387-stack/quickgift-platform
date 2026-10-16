@@ -125,7 +125,6 @@ async function getOwnSeller(userId) {
   return rows[0];
 }
 
-
 // GET /api/sellers/me/warehouses
 router.get(
   '/me/warehouses',
@@ -134,7 +133,6 @@ router.get(
   async (req, res, next) => {
     try {
       const seller = await getOwnSeller(req.user.id);
-const { rows } = await db.query(
 
       const { rows } = await db.query(
         `SELECT
@@ -151,14 +149,14 @@ const { rows } = await db.query(
         [seller.id]
       );
 
-  
-
       res.json({ warehouses: rows });
     } catch (err) {
       next(err);
     }
   }
 );
+
+
 
 // POST /api/sellers/me/warehouses
 router.post(
