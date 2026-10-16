@@ -276,10 +276,12 @@ router.patch(
         throw new ApiError(400, 'Invalid warehouse ID.');
       }
       
+
+
 const { rows } = await db.query(
   `UPDATE warehouses
-   SET approval_status = 'approved',
-       is_active = TRUE
+   SET approval_status = 'rejected',
+       is_active = FALSE
    WHERE id = $1
      AND approval_status = 'pending'
    RETURNING *`,
