@@ -30,6 +30,7 @@ change, no code changes, no reinstall.
 ## Setup (local)
 
 ### 1. Database
+bash
 
 createdb quickgift
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/schema.sql
