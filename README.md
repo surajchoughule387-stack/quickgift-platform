@@ -43,7 +43,6 @@ For an existing database, check which migrations have already been applied and i
 
 The payment webhook migration ("migration_004_payment_webhook_safety.sql") is handled separately and must be coordinated with the matching payment backend changes.
 
-<WritingBlock id="58314" variant="standard">For an existing local database that already has `schema.sql` applied, check which migrations have already been applied before running pending migrations.
 
 Run the pending migrations in order:
 
