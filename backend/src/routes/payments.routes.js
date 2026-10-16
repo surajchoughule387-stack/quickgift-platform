@@ -110,7 +110,17 @@ router.post('/webhook', async (req, res, next) => {
       );
     }
     
-  
+  // Ignore duplicate non-refund webhook events.
+if (
+  event !== 'refund.processed' &&
+  payment.webhook_verified &&
+  payment.status === status
+) {
+  return res.json({
+    received: true,
+    duplicate: true
+  });
+}
 
     // Refund webhook.
     if (event === 'refund.processed') {
