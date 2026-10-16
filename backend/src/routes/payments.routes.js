@@ -620,6 +620,18 @@ router.post(
           providerResult.providerRefundId
         ]
       );
+            if (refundCompleted) {
+        await client.query(
+          `INSERT INTO transactions
+           (payment_id, type, amount, status, provider_reference)
+           VALUES ($1, 'refund', $2, 'refunded', $3)`,
+          [
+            payment.id,
+            refundAmount,
+            providerResult.providerRefundId
+          ]
+        );
+      }
 
       const totalResult = await client.query(
         `SELECT COALESCE(SUM(amount), 0) AS total
