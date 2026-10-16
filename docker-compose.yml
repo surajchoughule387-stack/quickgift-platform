@@ -11,6 +11,7 @@ services:
       - "5432:5432"
     
           volumes:
+          
       - quickgift_pgdata:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
       - ./database/migration_001_otp_codes.sql:/docker-entrypoint-initdb.d/2-migration_001_otp_codes.sql
@@ -19,6 +20,8 @@ services:
       - ./database/migration_005_inventory_uniqueness.sql:/docker-entrypoint-initdb.d/5-migration_005_inventory_uniqueness.sql
       - ./database/migration_006_stock_variant_delete_safety.sql:/docker-entrypoint-initdb.d/6-migration_006_stock_variant_delete_safety.sql
       - ./database/migration_007_payment_order_id.sql:/docker-entrypoint-initdb.d/7-migration_007_payment_order_id.sql
+
+      
   backend:
     build: ./backend
     restart: unless-stopped
