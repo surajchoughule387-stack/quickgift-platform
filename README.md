@@ -30,7 +30,9 @@ change, no code changes, no reinstall.
 ## Setup (local)
 
 ### 1. Database
-bash
+1. Database
+
+Run locally:
 
 createdb quickgift
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/schema.sql
@@ -45,14 +47,13 @@ For an existing database, verify which migrations have already been applied and 
 
 The payment webhook migration ("migration_004_payment_webhook_safety.sql") is handled separately and must be coordinated with the matching payment backend changes.
 
-Important: Apply only migrations confirmed to be pending. These commands are examples, not a script to run blindly:
+Apply only migrations confirmed to be pending. These commands are examples, not a script to run blindly:
 
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_001_otp_codes.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_002_shiprocket.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_003_warehouse_stock_approval.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_005_inventory_uniqueness.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_006_stock_variant_delete_safety.sql
-
 ### 2. Backend
 ```bash
 cd backend
