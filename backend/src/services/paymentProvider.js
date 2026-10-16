@@ -19,10 +19,15 @@ const mockProvider = {
     };
   },
 
-  verifyWebhookSignature() {
-    return true;
-  },
+  
+    verifyWebhookSignature() {
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
 
+  return true;
+},
+  
   parseWebhookEvent(rawBody) {
     const body = JSON.parse(rawBody.toString('utf8'));
 
