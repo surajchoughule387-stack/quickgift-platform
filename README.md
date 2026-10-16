@@ -36,6 +36,17 @@ psql -U postgres -d quickgift -f database/schema.sql
 ```
 Or with Docker: `docker compose up postgres` (schema auto-applies on first boot).
 
+<WritingBlock id="58314" variant="standard">For an existing local database that already has `schema.sql` applied, check which migrations have already been applied before running pending migrations.
+
+Run the pending migrations in order:
+
+```bash
+psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_001_otp_codes.sql
+psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_002_shiprocket.sql
+psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_003_warehouse_stock_approval.sql
+psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_005_inventory_uniqueness.sql
+psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_006_stock_variant_delete_safety.sql
+
 
 ### 2. Backend
 ```bash
