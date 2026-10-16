@@ -32,7 +32,6 @@ change, no code changes, no reinstall.
 
 ### 1. Database
 1. Database
-```bash
 Run locally:
 
 createdb quickgift
