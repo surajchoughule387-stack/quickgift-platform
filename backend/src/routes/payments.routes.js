@@ -57,13 +57,16 @@ router.post('/webhook', async (req, res, next) => {
 
     const parsed = paymentProvider.parseWebhookEvent(rawBody);
 
-    const {
-      providerOrderId = null,
-      providerPaymentId,
-      status,
-      event = null
-    } = parsed;
+  
 
+    const {
+  providerOrderId = null,
+  providerPaymentId,
+  providerRefundId = null,
+  refundAmount = null,
+  status,
+  event = null
+} = parsed;
     if (!providerPaymentId || !status) {
       throw new ApiError(
         400,
