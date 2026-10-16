@@ -110,66 +110,107 @@ router.post('/webhook', async (req, res, next) => {
       );
     }
     
-    // Prevent duplicate webhook processing.
-    if (
-      payment.webhook_verified &&
-      payment.status === status
-    ) {
-      return res.json({
-        received: true,
-        duplicate: true
-      });
-    }
+  
 
     // Refund webhook.
-    if (
-      status === 'refunded' ||
-      event === 'refund.processed'
-    ) {
-      await db.query(
-        `UPDATE payments
-         SET status = $1,
-             webhook_verified = true,
-             provider_payment_id = $2
-         WHERE id = $3`,
-        [
-          'refunded',
-          providerPaymentId,
-          payment.id
-        ]
-      );
+    if (event === 'refund.processed') {
+      if (
+        !providerRefundId ||
+        !providerPaymentId ||
+        !Number.isFinite(refundAmount) ||
+        refundAmount <= 0
+      ) {
+        throw new ApiError(
+          400,
+          'Refund ID, payment ID and valid refund amount are required.'
+        );
+      }
 
       const existingRefundTx = await db.query(
         `SELECT id FROM transactions
          WHERE payment_id = $1
-           AND type = $2
-           AND provider_reference = $3
+           AND type = 'refund'
+           AND provider_reference = $2
          LIMIT 1`,
-        [
-          payment.id,
-          'refund',
-          providerPaymentId
-        ]
+        [payment.id, providerRefundId]
       );
 
-      if (!existingRefundTx.rows[0]) {
-        await db.query(
-          `INSERT INTO transactions
-           (payment_id, type, amount, status, provider_reference)
-           VALUES ($1, 'refund', $2, 'refunded', $3)`,
-          [
-            payment.id,
-            payment.amount,
-            providerPaymentId
-          ]
-        );
+      if (existingRefundTx.rows[0]) {
+        return res.json({
+          received: true,
+          duplicate: true
+        });
       }
 
-      return res.json({
-        received: true
-      });
-    }
+      const client = await db.getClient();
 
+      try {
+        await client.query('BEGIN');
+
+        const lockedPayment = await client.query(
+          `SELECT * FROM payments
+           WHERE id = $1
+           FOR UPDATE`,
+          [payment.id]
+        );
+
+        if (!lockedPayment.rows[0]) {
+          throw new ApiError(404, 'Payment not found.');
+        }
+
+        const duplicate = await client.query(
+          `SELECT id FROM transactions
+           WHERE payment_id = $1
+             AND type = 'refund'
+             AND provider_reference = $2
+           LIMIT 1`,
+          [payment.id, providerRefundId]
+        );
+
+        if (!duplicate.rows[0]) {
+          await client.query(
+            `INSERT INTO transactions
+             (payment_id, type, amount, status, provider_reference)
+             VALUES ($1, 'refund', $2, 'refunded', $3)`,
+            [payment.id, refundAmount, providerRefundId]
+          );
+        }
+
+        const totalRefunds = await client.query(
+          `SELECT COALESCE(SUM(amount), 0) AS total
+           FROM transactions
+           WHERE payment_id = $1
+             AND type = 'refund'
+             AND status = 'refunded'`,
+          [payment.id]
+        );
+
+        const fullyRefunded =
+          Number(totalRefunds.rows[0].total) >=
+          Number(lockedPayment.rows[0].amount);
+
+        await client.query(
+          `UPDATE payments
+           SET status = $1,
+               webhook_verified = true
+           WHERE id = $2`,
+          [
+            fullyRefunded ? 'refunded' : 'partially_refunded',
+            payment.id
+          ]
+        );
+
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+
+      return res.json({ received: true });
+    }
+    
     // Update payment with the REAL Razorpay Payment ID.
     const updatedPaymentRes = await db.query(
       `UPDATE payments
