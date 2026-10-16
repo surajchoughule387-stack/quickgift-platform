@@ -54,6 +54,7 @@ psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_002_shipr
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_003_warehouse_stock_approval.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_005_inventory_uniqueness.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_006_stock_variant_delete_safety.sql
+psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_007_payment_order_id.sql
 ### 2. Backend
 ```bash
 cd backend
