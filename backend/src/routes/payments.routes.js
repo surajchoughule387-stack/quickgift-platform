@@ -348,55 +348,62 @@ if (
 });
 
 // POST /api/payments/:id/refund
-
- // POST /api/payments/:id/refund
+// POST /api/payments/:id/refund
 router.post(
   '/:id/refund',
   authenticate,
   requireRole('admin', 'super_admin', 'finance_manager'),
   async (req, res, next) => {
-    const client = await db.getClient();
-    let payment;
-    let refund;
-    let fullyRefunded = false;
-    let reason = '';
+    let client;
 
     try {
+      client = await db.getClient();
       await client.query('BEGIN');
 
       const paymentResult = await client.query(
-        `SELECT * FROM payments
+        `SELECT *
+         FROM payments
          WHERE id = $1
          FOR UPDATE`,
         [req.params.id]
       );
 
-      payment = paymentResult.rows[0];
+      const payment = paymentResult.rows[0];
 
       if (!payment) {
         throw new ApiError(404, 'Payment not found.');
       }
 
-      if (!['captured', 'partially_refunded'].includes(payment.status)) {
+      if (
+        !['captured', 'partially_refunded'].includes(
+          payment.status
+        )
+      ) {
         throw new ApiError(
           400,
           'Only captured or partially refunded payments can be refunded.'
         );
       }
 
-      const amount = req.body.amount ?? payment.amount;
-      reason = req.body.reason ?? '';
-      const refundAmount = Number(amount);
+      const refundAmount = Number(
+        req.body.amount ?? payment.amount
+      );
+
+      const reason =
+        typeof req.body.reason === 'string'
+          ? req.body.reason.trim()
+          : '';
 
       if (
         !Number.isFinite(refundAmount) ||
         refundAmount <= 0 ||
-        refundAmount > Number(payment.amount)
+        Math.round(refundAmount * 100) !==
+          refundAmount * 100
       ) {
         throw new ApiError(400, 'Invalid refund amount.');
       }
 
-      const refundedTotal = await client.query(
+      const refundedResult = await client.query(
         `SELECT COALESCE(SUM(amount), 0) AS total
          FROM transactions
          WHERE payment_id = $1
@@ -405,14 +412,32 @@ router.post(
         [payment.id]
       );
 
-      const remainingAmount =
-        Number(payment.amount) -
-        Number(refundedTotal.rows[0].total);
+      const refundedTotal = Number(
+        refundedResult.rows[0].total
+      );
 
-      if (refundAmount > remainingAmount) {
+      const remainingAmount =
+        Math.round(
+          (Number(payment.amount) - refundedTotal) * 100
+        ) / 100;
+
+      if (
+        refundAmount > remainingAmount ||
+        refundAmount > Number(payment.amount)
+      ) {
         throw new ApiError(
           400,
           'Refund amount exceeds the remaining refundable amount.'
+        );
+      }
+
+      if (
+        payment.provider !== 'razorpay' &&
+        payment.provider !== 'mock'
+      ) {
+        throw new ApiError(
+          400,
+          'Unsupported payment provider.'
         );
       }
 
@@ -423,8 +448,11 @@ router.post(
         );
       }
 
-      // Keep the payment row locked while the provider request
-      // and its database records are processed.
+      /*
+       * IMPORTANT:
+       * The external provider may accept the refund even if the
+       * database later fails. Reconciliation is still required.
+       */
       const providerResult = await paymentProvider.refund({
         providerPaymentId: payment.provider_payment_id,
         amount: refundAmount
@@ -432,31 +460,49 @@ router.post(
 
       if (!providerResult.providerRefundId) {
         throw new Error(
-          'Provider refund ID missing; refund reconciliation required.'
+          'Provider refund ID missing. Manual reconciliation required.'
         );
       }
+
+      const providerStatus = String(
+        providerResult.status || 'pending'
+      ).toLowerCase();
+
+      const refundCompleted = [
+        'processed',
+        'refunded'
+      ].includes(providerStatus);
+
+      const refundStatus = refundCompleted
+        ? 'refunded'
+        : 'processing';
 
       await client.query(
         `INSERT INTO refunds
          (order_id, payment_id, amount, reason,
           status, requested_by, processed_by, processed_at)
-         VALUES ($1, $2, $3, $4, 'refunded', $5, $5, now())`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7,
+                 CASE WHEN $5 = 'refunded' THEN now() ELSE NULL END)`,
         [
           payment.order_id,
           payment.id,
           refundAmount,
           reason,
-          req.user.id
+          refundStatus,
+          req.user.id,
+          refundCompleted ? req.user.id : null
         ]
       );
 
       await client.query(
         `INSERT INTO transactions
          (payment_id, type, amount, status, provider_reference)
-         VALUES ($1, 'refund', $2, 'refunded', $3)`,
+         VALUES ($1, 'refund', $2, $3, $4)
+         ON CONFLICT DO NOTHING`,
         [
           payment.id,
           refundAmount,
+          refundStatus,
           providerResult.providerRefundId
         ]
       );
@@ -470,17 +516,24 @@ router.post(
         [payment.id]
       );
 
-      fullyRefunded =
-        Number(totalResult.rows[0].total) >= Number(payment.amount);
+      const totalRefunded = Number(
+        totalResult.rows[0].total
+      );
+
+      const fullyRefunded =
+        totalRefunded >= Number(payment.amount);
+
+      const newPaymentStatus = fullyRefunded
+        ? 'refunded'
+        : totalRefunded > 0
+          ? 'partially_refunded'
+          : payment.status;
 
       await client.query(
         `UPDATE payments
          SET status = $1
          WHERE id = $2`,
-        [
-          fullyRefunded ? 'refunded' : 'partially_refunded',
-          payment.id
-        ]
+        [newPaymentStatus, payment.id]
       );
 
       await client.query('COMMIT');
@@ -494,27 +547,33 @@ router.post(
         );
       }
 
-      refund = {
-        payment_id: payment.id,
-        amount: refundAmount,
-        provider_refund_id: providerResult.providerRefundId,
-        status: providerResult.status
-      };
-
-      return res.json({ refund });
+      return res.json({
+        refund: {
+          payment_id: payment.id,
+          amount: refundAmount,
+          provider_refund_id: providerResult.providerRefundId,
+          status: refundStatus
+        }
+      });
     } catch (err) {
-      try {
-        await client.query('ROLLBACK');
-      } catch (rollbackError) {
-        console.error('Refund rollback failed:', rollbackError);
+      if (client) {
+        try {
+          await client.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error(
+            'Refund rollback failed:',
+            rollbackError
+          );
+        }
       }
 
-      next(err);
+      return next(err);
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 );
-
 
 module.exports = router;
