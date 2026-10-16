@@ -526,14 +526,21 @@ router.post(
       );
 
       await client.query(
-        `INSERT INTO transactions
-         (payment_id, type, amount, status, provider_reference)
-         VALUES ($1, 'refund', $2, $3, $4)
-         ON CONFLICT DO NOTHING`,
+        `INSERT INTO refunds
+         (order_id, payment_id, amount, reason,
+          status, requested_by, processed_by, processed_at,
+          provider_refund_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7,
+                 CASE WHEN $5 = 'refunded' THEN now() ELSE NULL END,
+                 $8)`,
         [
+          payment.order_id,
           payment.id,
           refundAmount,
+          reason,
           refundStatus,
+          req.user.id,
+          refundCompleted ? req.user.id : null,
           providerResult.providerRefundId
         ]
       );
