@@ -408,7 +408,7 @@ if (refundAmount > remainingAmount) {
         await paymentProvider.refund({
           providerPaymentId:
             payment.rows[0].provider_payment_id,
-          amount
+          amount: refundAmount
         });
 
       const refund = await db.query(
