@@ -277,11 +277,12 @@ router.patch(
       }
       
 
+      
 
 const { rows } = await db.query(
   `UPDATE warehouses
-   SET approval_status = 'rejected',
-       is_active = FALSE
+   SET approval_status = 'approved',
+       is_active = TRUE
    WHERE id = $1
      AND approval_status = 'pending'
    RETURNING *`,
@@ -315,15 +316,19 @@ router.patch(
         throw new ApiError(400, 'Invalid warehouse ID.');
       }
 
+
+
+      
 const { rows } = await db.query(
   `UPDATE warehouses
-   SET approval_status = 'approved',
-       is_active = TRUE
+   SET approval_status = 'rejected',
+       is_active = FALSE
    WHERE id = $1
      AND approval_status = 'pending'
    RETURNING *`,
   [id]
 );
+
       
       if (!rows[0]) {
         throw new ApiError(404, 'Warehouse not found.');
