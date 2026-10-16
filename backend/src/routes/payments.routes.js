@@ -422,7 +422,7 @@ if (refundAmount > remainingAmount) {
         [
           payment.rows[0].order_id,
           payment.rows[0].id,
-          amount,
+          refundAmount,
           reason,
           req.user.id
         ]
