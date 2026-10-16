@@ -127,11 +127,19 @@ router.post('/checkout', authenticate, async (req, res, next) => {
     // Create the payment intent the frontend's payment SDK will confirm against.
     const intent = await paymentProvider.createPaymentIntent({ amount: totalAmount, currency: country.rows[0].currency_code, orderId: order.id });
     await db.query(
-      `INSERT INTO payments (order_id, provider, provider_payment_id, amount, currency_code, method)
-       VALUES ($1,$2,$3,$4,$5,$6)`,
-      [order.id, intent.provider, intent.providerPaymentId, totalAmount, country.rows[0].currency_code, payment_method]
-    );
-
+    
+`INSERT INTO payments
+ (order_id, provider, provider_order_id, amount, currency_code, method)
+ VALUES ($1, $2, $3, $4, $5, $6)`,
+[
+  order.id,
+  intent.provider,
+  intent.provider === 'razorpay' ? intent.providerPaymentId : null,
+  totalAmount,
+  country.rows[0].currency_code,
+  payment_method
+]
+    
     res.status(201).json({ order, payment_intent: intent });
   } catch (err) {
     await client.query('ROLLBACK');
