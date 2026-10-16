@@ -439,14 +439,37 @@ if (refundAmount > remainingAmount) {
           providerResult.providerRefundId
         ]
       );
-
-      await setOrderStatus(
-        payment.rows[0].order_id,
-        'refunded',
-        reason,
-        req.user.id
+      const totalRefunded = await db.query(
+        `SELECT COALESCE(SUM(amount), 0) AS total
+         FROM transactions
+         WHERE payment_id = $1
+           AND type = 'refund'
+           AND status = 'refunded'`,
+        [payment.rows[0].id]
       );
 
+      const fullyRefunded =
+        Number(totalRefunded.rows[0].total) >=
+        Number(payment.rows[0].amount);
+
+      await db.query(
+        `UPDATE payments
+         SET status = $1
+         WHERE id = $2`,
+        [
+          fullyRefunded ? 'refunded' : 'partially_refunded',
+          payment.rows[0].id
+        ]
+      );
+
+      if (fullyRefunded) {
+        await setOrderStatus(
+          payment.rows[0].order_id,
+          'refunded',
+          reason,
+          req.user.id
+        );
+      }
       res.json({
         refund: refund.rows[0]
       });
