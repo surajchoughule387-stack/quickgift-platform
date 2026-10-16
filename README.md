@@ -36,6 +36,7 @@ psql -U postgres -d quickgift -f database/schema.sql
 ```
 Or with Docker: `docker compose up postgres` (schema auto-applies on first boot).
 
+
 ### 2. Backend
 ```bash
 cd backend
