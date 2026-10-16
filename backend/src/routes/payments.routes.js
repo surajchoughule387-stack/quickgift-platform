@@ -186,7 +186,7 @@ if (
             );
           }
         } else {
-                if (refundCompleted) {
+    
         
 await client.query(
   `INSERT INTO transactions
