@@ -28,23 +28,39 @@ const mockProvider = {
   return true;
 },
   
-  parseWebhookEvent(rawBody) {
+    parseWebhookEvent(rawBody) {
     const body = JSON.parse(rawBody.toString('utf8'));
 
+    const paymentEntity = body.payload?.payment?.entity;
+    const refundEntity = body.payload?.refund?.entity;
+
+    const statusMap = {
+      'payment.captured': 'captured',
+      'payment.failed': 'failed',
+      'refund.processed': 'refunded'
+    };
+
     return {
-      providerPaymentId: body.providerPaymentId,
-      status: body.status
+      providerOrderId:
+        paymentEntity?.order_id || null,
+
+      providerPaymentId:
+        paymentEntity?.id ||
+        refundEntity?.payment_id ||
+        null,
+
+      providerRefundId:
+        refundEntity?.id || null,
+
+      refundAmount:
+        refundEntity?.amount != null
+          ? refundEntity.amount / 100
+          : null,
+
+      status: statusMap[body.event] || null,
+      event: body.event || null
     };
   },
-
-  async refund({ providerPaymentId, amount }) {
-    return {
-      status: 'refunded',
-      providerPaymentId,
-      amount
-    };
-  }
-};
 
 // ---------------------------------------------------------------------------
 // Razorpay
