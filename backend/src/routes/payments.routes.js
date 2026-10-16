@@ -406,7 +406,7 @@ router.post(
         [
           payment.rows[0].id,
           amount,
-          providerResult.providerPaymentId
+          providerResult.providerRefundId
         ]
       );
 
