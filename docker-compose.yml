@@ -18,7 +18,7 @@ services:
       - ./database/migration_003_warehouse_stock_approval.sql:/docker-entrypoint-initdb.d/4-migration_003_warehouse_stock_approval.sql
       - ./database/migration_005_inventory_uniqueness.sql:/docker-entrypoint-initdb.d/5-migration_005_inventory_uniqueness.sql
       - ./database/migration_006_stock_variant_delete_safety.sql:/docker-entrypoint-initdb.d/6-migration_006_stock_variant_delete_safety.sql
-
+      - ./database/migration_007_payment_order_id.sql:/docker-entrypoint-initdb.d/7-migration_007_payment_order_id.sql
   backend:
     build: ./backend
     restart: unless-stopped
