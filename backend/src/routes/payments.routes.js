@@ -110,6 +110,38 @@ router.post('/webhook', async (req, res, next) => {
       );
     }
     
+    // Verify webhook IDs against the stored payment.
+    if (
+      providerOrderId &&
+      payment.provider_order_id &&
+      payment.provider_order_id !== providerOrderId
+    ) {
+      throw new ApiError(
+        409,
+        'Webhook order ID does not match the payment.'
+      );
+    }
+
+    if (
+      payment.provider_payment_id &&
+      payment.provider_payment_id !== providerPaymentId
+    ) {
+      throw new ApiError(
+        409,
+        'Webhook payment ID does not match the payment.'
+      );
+    }
+
+    if (
+      event === 'refund.processed' &&
+      payment.provider_payment_id !== providerPaymentId
+    ) {
+      throw new ApiError(
+        409,
+        'Refund webhook payment ID does not match the payment.'
+      );
+    }
+
   // Ignore duplicate non-refund webhook events.
 if (
   event !== 'refund.processed' &&
