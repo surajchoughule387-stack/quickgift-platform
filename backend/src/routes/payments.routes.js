@@ -433,8 +433,9 @@ if (refundAmount > remainingAmount) {
          (payment_id, type, amount, status, provider_reference)
          VALUES ($1, 'refund', $2, 'refunded', $3)`,
         [
+      
           payment.rows[0].id,
-          amount,
+          refundAmount,
           providerResult.providerRefundId
         ]
       );
