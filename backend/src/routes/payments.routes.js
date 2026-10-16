@@ -176,13 +176,18 @@ if (event === 'refund.processed') {
         );
       }
     } else {
+      
       await client.query(
         `INSERT INTO transactions
          (payment_id, type, amount, status, provider_reference)
-         VALUES ($1, 'refund', $2, 'refunded', $3)`,
-        [payment.id, refundAmount, providerRefundId]
+         VALUES ($1, 'refund', $2, $3, $4)`,
+        [
+          payment.id,
+          refundAmount,
+          refundStatus,
+          providerResult.providerRefundId
+        ]
       );
-    }
 
     // Mark a matching pending refund as completed.
     await client.query(
