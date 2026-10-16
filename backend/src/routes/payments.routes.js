@@ -186,18 +186,18 @@ if (
             );
           }
         } else {
-          await client.query(
-            `INSERT INTO transactions
-             (payment_id, type, amount, status, provider_reference)
-             VALUES ($1, 'refund', $2, 'refunded', $3)`,
-            [
-              lockedPayment.id,
-              refundAmount,
-              providerRefundId
-            ]
-          );
-        }
-
+                if (refundCompleted) {
+        await client.query(
+          `INSERT INTO transactions
+           (payment_id, type, amount, status, provider_reference)
+           VALUES ($1, 'refund', $2, 'refunded', $3)`,
+          [
+            payment.id,
+            refundAmount,
+            providerResult.providerRefundId
+          ]
+        );
+      }
         // Update only the refund matching this provider refund ID.
         await client.query(
           `UPDATE refunds
