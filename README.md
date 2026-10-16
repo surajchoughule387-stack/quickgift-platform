@@ -35,6 +35,13 @@ createdb quickgift
 psql -U postgres -d quickgift -f database/schema.sql
 ```
 Or with Docker: `docker compose up postgres` (schema auto-applies on first boot).
+Database migrations
+
+The base schema does not include every later database change. For a fresh local Docker database, configure the required migration files in "docker-compose.yml" so they run after "schema.sql", in dependency order.
+
+For an existing database, check which migrations have already been applied and inspect duplicate inventory records before applying any pending migration. Do not run migrations blindly against an existing or production database.
+
+The payment webhook migration ("migration_004_payment_webhook_safety.sql") is handled separately and must be coordinated with the matching payment backend changes.
 
 <WritingBlock id="58314" variant="standard">For an existing local database that already has `schema.sql` applied, check which migrations have already been applied before running pending migrations.
 
