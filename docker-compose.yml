@@ -9,9 +9,15 @@ services:
       POSTGRES_DB: quickgift
     ports:
       - "5432:5432"
-    volumes:
+    
+          volumes:
       - quickgift_pgdata:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - ./database/migration_001_otp_codes.sql:/docker-entrypoint-initdb.d/2-migration_001_otp_codes.sql
+      - ./database/migration_002_shiprocket.sql:/docker-entrypoint-initdb.d/3-migration_002_shiprocket.sql
+      - ./database/migration_003_warehouse_stock_approval.sql:/docker-entrypoint-initdb.d/4-migration_003_warehouse_stock_approval.sql
+      - ./database/migration_005_inventory_uniqueness.sql:/docker-entrypoint-initdb.d/5-migration_005_inventory_uniqueness.sql
+      - ./database/migration_006_stock_variant_delete_safety.sql:/docker-entrypoint-initdb.d/6-migration_006_stock_variant_delete_safety.sql
 
   backend:
     build: ./backend
