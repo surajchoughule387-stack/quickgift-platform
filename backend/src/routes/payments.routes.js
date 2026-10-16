@@ -123,72 +123,158 @@ if (
 }
 
     // Refund webhook.
+    
     // Refund webhook.
-if (event === 'refund.processed') {
-  if (
-    !providerRefundId ||
-    !providerPaymentId ||
-    !Number.isFinite(refundAmount) ||
-    refundAmount <= 0
-  ) {
-    throw new ApiError(
-      400,
-      'Refund ID, payment ID and valid refund amount are required.'
-    );
-  }
-
-  const client = await db.getClient();
-
-  try {
-    await client.query('BEGIN');
-
-    const lockedResult = await client.query(
-      `SELECT *
-       FROM payments
-       WHERE id = $1
-       FOR UPDATE`,
-      [payment.id]
-    );
-
-    const lockedPayment = lockedResult.rows[0];
-
-    if (!lockedPayment) {
-      throw new ApiError(404, 'Payment not found.');
-    }
-
-    const existingTx = await client.query(
-      `SELECT id, status
-       FROM transactions
-       WHERE payment_id = $1
-         AND type = 'refund'
-         AND provider_reference = $2
-       FOR UPDATE`,
-      [payment.id, providerRefundId]
-    );
-
-    if (existingTx.rows[0]) {
-      if (existingTx.rows[0].status !== 'refunded') {
-        await client.query(
-          `UPDATE transactions
-           SET status = 'refunded'
-           WHERE id = $1`,
-          [existingTx.rows[0].id]
+    if (event === 'refund.processed') {
+      if (
+        !providerRefundId ||
+        !providerPaymentId ||
+        !Number.isFinite(refundAmount) ||
+        refundAmount <= 0
+      ) {
+        throw new ApiError(
+          400,
+          'Refund ID, payment ID and valid refund amount are required.'
         );
       }
-    } else {
-      
-      await client.query(
-        `INSERT INTO transactions
-         (payment_id, type, amount, status, provider_reference)
-         VALUES ($1, 'refund', $2, $3, $4)`,
-        [
-          payment.id,
-          refundAmount,
-          refundStatus,
-          providerResult.providerRefundId
-        ]
-      );
 
+      const client = await db.getClient();
+
+      try {
+        await client.query('BEGIN');
+
+        const lockedResult = await client.query(
+          `SELECT *
+           FROM payments
+           WHERE id = $1
+           FOR UPDATE`,
+          [payment.id]
+        );
+
+        const lockedPayment = lockedResult.rows[0];
+
+        if (!lockedPayment) {
+          throw new ApiError(404, 'Payment not found.');
+        }
+
+        const existingTx = await client.query(
+          `SELECT id, status, amount
+           FROM transactions
+           WHERE payment_id = $1
+             AND type = 'refund'
+             AND provider_reference = $2
+           FOR UPDATE`,
+          [lockedPayment.id, providerRefundId]
+        );
+
+        if (existingTx.rows[0]) {
+          if (
+            Number(existingTx.rows[0].amount) !== refundAmount
+          ) {
+            throw new ApiError(
+              409,
+              'Refund ID already exists with a different amount.'
+            );
+          }
+
+          if (existingTx.rows[0].status !== 'refunded') {
+            await client.query(
+              `UPDATE transactions
+               SET status = 'refunded'
+               WHERE id = $1`,
+              [existingTx.rows[0].id]
+            );
+          }
+        } else {
+          await client.query(
+            `INSERT INTO transactions
+             (payment_id, type, amount, status, provider_reference)
+             VALUES ($1, 'refund', $2, 'refunded', $3)`,
+            [
+              lockedPayment.id,
+              refundAmount,
+              providerRefundId
+            ]
+          );
+        }
+
+        // Update only the refund matching this provider refund ID.
+        await client.query(
+          `UPDATE refunds
+           SET status = 'refunded',
+               processed_at = COALESCE(processed_at, now())
+           WHERE provider_refund_id = $1
+             AND payment_id = $2
+             AND amount = $3
+             AND status IN (
+               'requested',
+               'approved',
+               'processing',
+               'refunded'
+             )`,
+          [
+            providerRefundId,
+            lockedPayment.id,
+            refundAmount
+          ]
+        );
+
+        const totals = await client.query(
+          `SELECT COALESCE(SUM(amount), 0) AS total
+           FROM transactions
+           WHERE payment_id = $1
+             AND type = 'refund'
+             AND status = 'refunded'`,
+          [lockedPayment.id]
+        );
+
+        const totalRefunded = Number(totals.rows[0].total);
+        const originalAmount = Number(lockedPayment.amount);
+
+        if (
+          !Number.isFinite(totalRefunded) ||
+          !Number.isFinite(originalAmount) ||
+          totalRefunded > originalAmount
+        ) {
+          throw new ApiError(
+            409,
+            'Recorded refunds exceed the original payment amount.'
+          );
+        }
+
+        const newStatus =
+          totalRefunded >= originalAmount
+            ? 'refunded'
+            : totalRefunded > 0
+              ? 'partially_refunded'
+              : lockedPayment.status;
+
+        await client.query(
+          `UPDATE payments
+           SET status = $1,
+               webhook_verified = true
+           WHERE id = $2`,
+          [newStatus, lockedPayment.id]
+        );
+
+        await client.query('COMMIT');
+      } catch (err) {
+        try {
+          await client.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error(
+            'Refund webhook rollback failed:',
+            rollbackError
+          );
+        }
+
+        throw err;
+      } finally {
+        client.release();
+      }
+
+      return res.json({ received: true });
+    }
     // Mark a matching pending refund as completed.
     await client.query(
       `UPDATE refunds
