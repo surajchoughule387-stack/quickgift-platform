@@ -46,8 +46,9 @@ CREATE TABLE IF NOT EXISTS inventory_adjustment_requests (
   product_id INTEGER NOT NULL
     REFERENCES products(id) ON DELETE CASCADE,
 
-  variant_id INTEGER
-    REFERENCES product_variants(id) ON DELETE SET NULL,
+  
+  variant_id INTEGER 
+  REFERENCES product_variants(id) ON DELETE RESTRICT,
 
   warehouse_id INTEGER NOT NULL
     REFERENCES warehouses(id) ON DELETE RESTRICT,
