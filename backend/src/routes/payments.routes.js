@@ -84,26 +84,21 @@ router.post('/webhook', async (req, res, next) => {
       );
     }
 
+  
     // Fallback: find using Razorpay PAYMENT ID.
     if (!paymentRes?.rows[0]) {
       paymentRes = await db.query(
         `SELECT * FROM payments
-         WHERE provider_payment_id = $1
+         WHERE provider = $1
+           AND provider_payment_id = $2
          ORDER BY created_at DESC
          LIMIT 1`,
-        [providerPaymentId]
+        ['razorpay', providerPaymentId]
       );
     }
 
     const payment = paymentRes.rows[0];
-
-    if (!payment) {
-      throw new ApiError(
-        404,
-        'Payment record not found for this webhook event.'
-      );
-    }
-
+    
     // Prevent duplicate webhook processing.
     if (
       payment.webhook_verified &&
