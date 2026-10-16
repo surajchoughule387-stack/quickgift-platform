@@ -30,8 +30,6 @@ change, no code changes, no reinstall.
 ## Setup (local)
 
 ### 1. Database
-```bash
-
 
 createdb quickgift
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/schema.sql
@@ -42,17 +40,18 @@ Database migrations
 
 The base schema does not include every later database change. For a fresh local Docker database, configure the required migration files in "docker-compose.yml" so they run after "schema.sql", in dependency order.
 
-For an existing database, check which migrations have already been applied and inspect duplicate inventory records before applying any pending migration. Do not run migrations blindly against an existing or production database.
+For an existing database, verify which migrations have already been applied and inspect duplicate inventory records before applying pending migrations. Do not run migrations blindly against an existing or production database.
 
 The payment webhook migration ("migration_004_payment_webhook_safety.sql") is handled separately and must be coordinated with the matching payment backend changes.
 
-Important: The following commands are examples for applying migrations to an existing local database only after verifying which migrations are still pending. Run only the migrations that have not already been applied.
+Important: Apply only migrations confirmed to be pending. These commands are examples, not a script to run blindly:
 
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_001_otp_codes.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_002_shiprocket.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_003_warehouse_stock_approval.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_005_inventory_uniqueness.sql
 psql -U postgres -d quickgift -v ON_ERROR_STOP=1 -f database/migration_006_stock_variant_delete_safety.sql
+
 ### 2. Backend
 ```bash
 cd backend
