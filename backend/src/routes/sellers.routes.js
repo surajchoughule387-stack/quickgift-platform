@@ -144,7 +144,7 @@ router.get(
            approval_status
          FROM warehouses
          WHERE seller_id = $1
-           AND is_active = TRUE
+           
          ORDER BY id DESC`,
         [seller.id]
       );
@@ -187,7 +187,7 @@ router.post(
 const { rows } = await db.query(
         `INSERT INTO warehouses
            (seller_id, name, address, country_id, is_active)
-         VALUES ($1, $2, $3, $4, TRUE)
+         VALUES ($1, $2, $3, $4, FALSE)
          RETURNING
            id,
            seller_id,
