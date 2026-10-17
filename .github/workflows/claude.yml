@@ -2,31 +2,32 @@
 name: Claude Code Review
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
 
 permissions:
   contents: read
-  pull-requests: read
   issues: read
+  pull-requests: read
 
 jobs:
   review:
-    if: >-
-      github.event_name == 'pull_request' ||
-      (github.event.issue.pull_request &&
-      contains(github.event.comment.body, '@claude'))
+    if: |
+      github.event.issue.pull_request == null &&
+      contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Review LAXIC changes
-        run: |
-          echo "LAXIC code review workflow started."
-          echo "Automated Claude review is not configured yet."
-
+      - name: Run Claude review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review the repository workflow configuration only.
+            Report errors and recommend safe fixes.
+            Do not modify files, create commits, or deploy.
