@@ -186,7 +186,9 @@ CREATE TABLE warehouses (
   country_id INTEGER REFERENCES countries(id),
   name TEXT NOT NULL,
   address TEXT,
-  is_active BOOLEAN DEFAULT TRUE
+  status TEXT NOT NULL DEFAULT 'pending',
+  is_active BOOLEAN DEFAULT TRUE,
+  CONSTRAINT warehouses_status_check CHECK (status IN ('pending', 'approved', 'rejected', 'suspended'))
 );
 
 CREATE TABLE inventory (
@@ -524,6 +526,7 @@ CREATE INDEX idx_inventory_product ON inventory(product_id);
 CREATE INDEX idx_reviews_product ON reviews(product_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 CREATE INDEX idx_tracking_events_shipment ON tracking_events(shipment_id);
+CREATE INDEX IF NOT EXISTS idx_warehouses_seller_status ON warehouses(seller_id, status);
 
 -- ---------------------------------------------------------------
 -- OTP CODES (added for real phone-verification support)
