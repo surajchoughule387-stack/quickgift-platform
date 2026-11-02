@@ -21,6 +21,7 @@ const poolConfig = connectionString
       idleTimeoutMillis: 30000
     };
 
+
 const pool = new Pool(poolConfig);
 
 pool.on('error', (err) => {
