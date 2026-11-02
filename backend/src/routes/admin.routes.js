@@ -7,6 +7,8 @@ const { hashPassword } = require('../utils/password');
 const { ApiError } = require('../middleware/errorHandler');
 
 const ADMIN_ROLES = ['admin', 'super_admin', 'ops_manager', 'support_agent', 'finance_manager'];
+const WAREHOUSE_ADMIN_ROLES = ['admin', 'super_admin'];
+const WAREHOUSE_STATUS_VALUES = ['pending', 'approved', 'rejected', 'suspended'];
 
 // ---------------------------------------------------------------------------
 // GET /api/admin/dashboard — spec section 19/35
@@ -117,6 +119,181 @@ router.post('/create-staff', authenticate, requireRole('super_admin'), async (re
 // ---------------------------------------------------------------------------
 // SELLER MANAGEMENT — spec section 21
 // ---------------------------------------------------------------------------
+router.get('/warehouses', authenticate, requireRole(...WAREHOUSE_ADMIN_ROLES), async (req, res, next) => {
+  try {
+    const { seller_id, status } = req.query;
+    const where = [];
+    const values = [];
+
+    if (seller_id !== undefined && seller_id !== null && seller_id !== '') {
+      const sellerId = Number(seller_id);
+      if (!Number.isSafeInteger(sellerId) || sellerId <= 0) {
+        throw new ApiError(400, 'Invalid seller_id.');
+      }
+      values.push(sellerId);
+      where.push(`w.seller_id = $${values.length}`);
+    }
+
+    if (status !== undefined && status !== null && status !== '') {
+      if (!WAREHOUSE_STATUS_VALUES.includes(status)) {
+        throw new ApiError(400, 'status must be one of: pending, approved, rejected, suspended.');
+      }
+      values.push(status);
+      where.push(`w.status = $${values.length}`);
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const { rows } = await db.query(
+      `SELECT w.*, s.business_name AS seller_name
+       FROM warehouses w
+       JOIN sellers s ON s.id = w.seller_id
+       ${whereClause}
+       ORDER BY w.id DESC`,
+      values
+    );
+
+    res.json({ warehouses: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/warehouses/:id/approve', authenticate, requireRole(...WAREHOUSE_ADMIN_ROLES), async (req, res, next) => {
+  try {
+    const warehouseId = Number(req.params.id);
+    if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
+      throw new ApiError(400, 'Invalid warehouse ID.');
+    }
+
+    const { rows } = await db.query(
+      `UPDATE warehouses
+       SET status = 'approved'
+       WHERE id = $1
+         AND status = 'pending'
+       RETURNING *`,
+      [warehouseId]
+    );
+
+    if (!rows[0]) {
+      const current = await db.query(
+        'SELECT status FROM warehouses WHERE id = $1',
+        [warehouseId]
+      );
+      if (!current.rows[0]) {
+        throw new ApiError(404, 'Warehouse not found.');
+      }
+      throw new ApiError(
+        409,
+        `Invalid warehouse transition: current status is '${current.rows[0].status}', approved only from 'pending'.`
+      );
+    }
+
+    res.json({ warehouse: rows[0] });
+  } catch (err) { next(err); }
+});
+
+router.patch('/warehouses/:id/reject', authenticate, requireRole(...WAREHOUSE_ADMIN_ROLES), async (req, res, next) => {
+  try {
+    const warehouseId = Number(req.params.id);
+    if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
+      throw new ApiError(400, 'Invalid warehouse ID.');
+    }
+
+    const { rows } = await db.query(
+      `UPDATE warehouses
+       SET status = 'rejected'
+       WHERE id = $1
+         AND status = 'pending'
+       RETURNING *`,
+      [warehouseId]
+    );
+
+    if (!rows[0]) {
+      const current = await db.query(
+        'SELECT status FROM warehouses WHERE id = $1',
+        [warehouseId]
+      );
+      if (!current.rows[0]) {
+        throw new ApiError(404, 'Warehouse not found.');
+      }
+      throw new ApiError(
+        409,
+        `Invalid warehouse transition: current status is '${current.rows[0].status}', rejected only from 'pending'.`
+      );
+    }
+
+    res.json({ warehouse: rows[0] });
+  } catch (err) { next(err); }
+});
+
+router.patch('/warehouses/:id/suspend', authenticate, requireRole(...WAREHOUSE_ADMIN_ROLES), async (req, res, next) => {
+  try {
+    const warehouseId = Number(req.params.id);
+    if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
+      throw new ApiError(400, 'Invalid warehouse ID.');
+    }
+
+    const { rows } = await db.query(
+      `UPDATE warehouses
+       SET status = 'suspended'
+       WHERE id = $1
+         AND status = 'approved'
+       RETURNING *`,
+      [warehouseId]
+    );
+
+    if (!rows[0]) {
+      const current = await db.query(
+        'SELECT status FROM warehouses WHERE id = $1',
+        [warehouseId]
+      );
+      if (!current.rows[0]) {
+        throw new ApiError(404, 'Warehouse not found.');
+      }
+      throw new ApiError(
+        409,
+        `Invalid warehouse transition: current status is '${current.rows[0].status}', suspended only from 'approved'.`
+      );
+    }
+
+    res.json({ warehouse: rows[0] });
+  } catch (err) { next(err); }
+});
+
+router.patch('/warehouses/:id/reinstate', authenticate, requireRole(...WAREHOUSE_ADMIN_ROLES), async (req, res, next) => {
+  try {
+    const warehouseId = Number(req.params.id);
+    if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
+      throw new ApiError(400, 'Invalid warehouse ID.');
+    }
+
+    const { rows } = await db.query(
+      `UPDATE warehouses
+       SET status = 'approved'
+       WHERE id = $1
+         AND status = 'suspended'
+       RETURNING *`,
+      [warehouseId]
+    );
+
+    if (!rows[0]) {
+      const current = await db.query(
+        'SELECT status FROM warehouses WHERE id = $1',
+        [warehouseId]
+      );
+      if (!current.rows[0]) {
+        throw new ApiError(404, 'Warehouse not found.');
+      }
+      throw new ApiError(
+        409,
+        `Invalid warehouse transition: current status is '${current.rows[0].status}', reinstatement only from 'suspended'.`
+      );
+    }
+
+    res.json({ warehouse: rows[0] });
+  } catch (err) { next(err); }
+});
+
 router.get('/sellers', authenticate, requireRole(...ADMIN_ROLES), async (req, res, next) => {
   try {
     const { status } = req.query;
@@ -145,7 +322,7 @@ router.patch('/sellers/:id/reject', authenticate, requireRole(...ADMIN_ROLES), a
   try {
     const { rows } = await db.query(`UPDATE sellers SET status = 'rejected', updated_at = now() WHERE id = $1 RETURNING *`, [req.params.id]);
     if (!rows[0]) throw new ApiError(404, 'Seller not found.');
-    res.json({ seller: rows[0], reason: req.body.reason || null });
+    res.json({ seller: rows[0] });
   } catch (err) { next(err); }
 });
 
