@@ -6,7 +6,6 @@ const connectionString = process.env.DATABASE_URL;
 const poolConfig = connectionString
   ? {
       connectionString,
-      ssl: { rejectUnauthorized: true },
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000
